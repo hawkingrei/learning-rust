@@ -1,0 +1,6 @@
+[package]
+name = "HigherOrderFunctions"
+version = "0.1.0"
+authors = ["真人 <weizhen.wang@duitang.com>"]
+
+[dependencies]
