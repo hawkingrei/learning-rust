@@ -1,3 +1,5 @@
+mod hash;
+use hash::{crc16_arr, crc64};
 use std::fs::File;
 use std::io::prelude::*;
 
