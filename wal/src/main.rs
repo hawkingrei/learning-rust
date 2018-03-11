@@ -1,4 +1,7 @@
 mod hash;
+extern crate zstd;
+#[cfg(feature = "zstd")]
+use zstd::block::compress;
 use hash::{crc16_arr, crc64};
 use std::fs::File;
 use std::io::prelude::*;
@@ -11,8 +14,10 @@ fn main() {
 			panic!("Failed to open a file: {:?}", e);
 		}
 	};
-	f.write_all(b"Hello, world!");
-	let crc64: [u8; 8] = unsafe { std::mem::transmute(crc64(String::from("Hello, world!").as_bytes())) };
+	f.write_all(b"aaaaaaaaaaaa");
+	let crc64: [u8; 8] =
+		unsafe { std::mem::transmute(crc64(String::from("aaaaaaaaaaaa").as_bytes())) };
 	f.write_all(&crc64);
+	//f.write_all(&zstd::block::compress("Hello, world!".as_bytes(), 5).unwrap());
 	f.sync_all();
 }
