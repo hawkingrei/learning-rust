@@ -8,19 +8,18 @@ use std::io::prelude::*;
 use std::mem::size_of_val;
 
 fn main() {
-    let mut f = File::create("foo.txt");
-    let mut f = match f {
-        Ok(file) => file,
-        Err(e) => {
-            panic!("Failed to open a file: {:?}", e);
-        }
-    };
-    let input = b"aaaaaaaaaaaa";
-    let inputcompress = &zstd::block::compress(input, 5).unwrap();
-    let size = unsafe { std::mem::transmute::<usize, [u8; 8]>(size_of_val(inputcompress)) };
-    f.write_all(&size);
-    f.write_all(inputcompress);
-    let crc64: [u8; 8] = unsafe { std::mem::transmute(crc64(inputcompress)) };
-    f.write_all(&crc64);
-    f.sync_all();
+	let mut f = match File::create("foo.txt") {
+		Ok(file) => file,
+		Err(e) => {
+			panic!("Failed to open a file: {:?}", e);
+		}
+	};
+	let input = b"aaaaaaaaaaaa";
+	let inputcompress = &zstd::block::compress(input, 5).unwrap();
+	let size = unsafe { std::mem::transmute::<usize, [u8; 8]>(size_of_val(inputcompress)) };
+	f.write_all(&size);
+	f.write_all(inputcompress);
+	let crc64: [u8; 8] = unsafe { std::mem::transmute(crc64(inputcompress)) };
+	f.write_all(&crc64);
+	f.sync_all();
 }
