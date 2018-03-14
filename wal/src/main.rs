@@ -6,6 +6,7 @@ use hash::{crc16_arr, crc64};
 use std::fs::File;
 use std::io::prelude::*;
 use std::mem::size_of_val;
+use std::io::SeekFrom;
 
 fn main() {
 	let mut f = match File::create("foo.txt") {
@@ -19,8 +20,8 @@ fn main() {
 	let size = unsafe { std::mem::transmute::<usize, [u8; 8]>(size_of_val(inputcompress)) };
 	f.write_all(&size);
 	f.write_all(inputcompress);
-	let crc64: [u8; 8] = unsafe { std::mem::transmute(crc64(inputcompress)) };
-	f.write_all(&crc64);
+	let crc64data: [u8; 8] = unsafe { std::mem::transmute(crc64(inputcompress)) };
+	f.write_all(&crc64data);
 	f.sync_all();
 
 	let mut ff = match File::open("foo.txt") {
@@ -29,12 +30,20 @@ fn main() {
 			panic!("Failed to open a file: {:?}", e);
 		}
 	};
-	let mut buffer = Vec::new();
-	ff.read_to_end(&mut buffer);
-	let ssize = unsafe { std::mem::transmute::<[u8; 8], u64>(buffer[0..8]) };
-	let data = &buffer[8..ssize + 8];
-	let crc_expected: u64 = unsafe { std::mem::transmute(buffer[ssize + 8..ssize + 8 + 8]) };
-	let crc_actual = crc64(data);
+	let mut datasize = [0; 8];
+	ff.read(&mut datasize);
+	let realsize = unsafe { std::mem::transmute::<[u8; 8], i64>(datasize) };
+	f.seek(SeekFrom::Current(8));
+
+	let mut data = [0; realsize];
+	ff.read(&mut data);
+	f.seek(SeekFrom::Current(realsize));
+
+	let mut crcdata = [0; 8];
+	ff.read(&mut crcdata);
+	let crc_expected = unsafe { std::mem::transmute(crcdata) };
+
+	let crc_actual = crc64(&data);
 	if crc_expected != crc_actual {
 		println!("ok");
 	};
