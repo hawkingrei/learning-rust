@@ -32,19 +32,19 @@ fn main() {
 	};
 	let mut datasize = [0; 8];
 	ff.read(&mut datasize);
-	let realsize = unsafe { std::mem::transmute::<[u8; 8], i64>(datasize) };
+	let realsize = unsafe { std::mem::transmute::<[u8; 8], usize>(datasize) };
 	f.seek(SeekFrom::Current(8));
 
-	let mut data = [0; realsize];
+	let mut data = vec![0; realsize];
 	ff.read(&mut data);
-	f.seek(SeekFrom::Current(realsize));
+	f.seek(SeekFrom::Current(realsize as i64));
 
 	let mut crcdata = [0; 8];
 	ff.read(&mut crcdata);
-	let crc_expected = unsafe { std::mem::transmute(crcdata) };
+	let crc_expected: u64 = unsafe { std::mem::transmute(crcdata) };
 
 	let crc_actual = crc64(&data);
-	if crc_expected != crc_actual {
+	if crc_expected == crc_actual {
 		println!("ok");
 	};
 }
