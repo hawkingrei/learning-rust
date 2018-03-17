@@ -7,6 +7,22 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::mem::size_of_val;
 
+enum RecordType {
+  kZeroType = 0,
+  kFullType = 1,
+
+  // For fragments
+  kFirstType = 2,
+  kMiddleType = 3,
+  kLastType = 4,
+
+  // For recycled log files
+  kRecyclableFullType = 5,
+  kRecyclableFirstType = 6,
+  kRecyclableMiddleType = 7,
+  kRecyclableLastType = 8,
+}
+
 fn main() {
     let mut f = File::create("foo.txt");
     let mut f = match f {
