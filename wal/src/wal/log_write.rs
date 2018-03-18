@@ -1,4 +1,5 @@
 use wal::log_format::{kRecyclableHeaderSize,kHeaderSize,kBlockSize};
+use std::mem;
 
 #[derive(Debug)]
 struct Write {
@@ -18,11 +19,12 @@ impl Write {
         }
     }
     /*const Slice& slice*/
-    fn add_record(&mut self) {
+    fn add_record(&mut self,slice :Vec<u8>) {
         /*
         const char* ptr = slice.data();
         size_t left = slice.size();
         */
+        let left = mem::size_of_val(&slice.as_slice());
         let header_size = if self.recycle_log_files_ {
             kRecyclableHeaderSize
         } else {
@@ -45,9 +47,9 @@ impl Write {
                 }
                 self.block_offset_ = 0;
             }
-            
-            let avail = kBlockSize - self.block_offset_ - header_size;
-            
+            assert!((kBlockSize - self.block_offset_)>= header_size);
+            let avail :usize= kBlockSize - self.block_offset_ - header_size;
+            let fragment_length :usize = if left<avail  {left} else {avail};
             
         }
     }
