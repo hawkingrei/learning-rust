@@ -1,28 +1,14 @@
 mod hash;
+mod wal;
 extern crate zstd;
 #[cfg(feature = "zstd")]
 use zstd::block::compress;
 use hash::{crc16_arr, crc64};
 use std::fs::File;
+use wal::log_write;
 use std::io::prelude::*;
 use std::mem::size_of_val;
 use std::io::SeekFrom;
-
-enum RecordType {
-  kZeroType = 0,
-  kFullType = 1,
-
-  // For fragments
-  kFirstType = 2,
-  kMiddleType = 3,
-  kLastType = 4,
-
-  // For recycled log files
-  kRecyclableFullType = 5,
-  kRecyclableFirstType = 6,
-  kRecyclableMiddleType = 7,
-  kRecyclableLastType = 8,
-}
 
 fn main() {
 	let mut f = match File::create("foo.txt") {
