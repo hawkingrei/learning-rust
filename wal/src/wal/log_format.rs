@@ -14,7 +14,7 @@ pub enum RecordType {
     kRecyclableLastType = 8,
 }
 
-pub static kMaxRecordType: u8 = RecordType::kRecyclableLastType as u8;
-pub static kBlockSize: usize = 32768;
-pub static kRecyclableHeaderSize: usize = 4 + 1 + 4 + 2;
-pub static kHeaderSize: usize = 4 + 2 + 1;
+pub const kMaxRecordType: u8 = RecordType::kRecyclableLastType as u8;
+pub const kBlockSize: usize = 32768;
+pub const kRecyclableHeaderSize: usize = 4 + 1 + 4 + 2;
+pub const kHeaderSize: usize = 4 + 2 + 1;

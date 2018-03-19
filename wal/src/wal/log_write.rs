@@ -83,4 +83,9 @@ impl Write {
         ptr = &ptr[fragment_length..];
         left -= fragment_length;
     }
+
+    fn EmitPhysicalRecord(t: RecordType, ptr: Vec<u8>, n: usize) {
+        let header_size: usize = 0;
+        let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
+    }
 }
