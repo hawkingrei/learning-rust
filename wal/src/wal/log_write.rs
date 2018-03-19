@@ -1,4 +1,4 @@
-use wal::log_format::{kRecyclableHeaderSize,kHeaderSize,kBlockSize};
+use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kRecyclableHeaderSize};
 use std::mem;
 
 #[derive(Debug)]
@@ -19,11 +19,12 @@ impl Write {
         }
     }
     /*const Slice& slice*/
-    fn add_record(&mut self,slice :Vec<u8>) {
+    fn add_record(&mut self, slice: Vec<u8>) {
         /*
         const char* ptr = slice.data();
         size_t left = slice.size();
         */
+        let mut ptr = slice.as_slice();
         let left = mem::size_of_val(&slice.as_slice());
         let header_size = if self.recycle_log_files_ {
             kRecyclableHeaderSize
@@ -32,14 +33,15 @@ impl Write {
         };
 
         let mut begin = true;
+        let mut fragment_length: usize;
         loop {
-            let leftover :usize = kBlockSize - self.block_offset_;
+            let leftover: usize = kBlockSize - self.block_offset_;
             assert!(leftover >= 0);
-            
+
             if (leftover < header_size) {
                 if (leftover > 0) {
-                assert!(header_size <= 11);
-                /*
+                    assert!(header_size <= 11);
+                    /*
                 dest_->Append(
                     Slice("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
                     static_cast<size_t>(leftover)));
@@ -47,10 +49,38 @@ impl Write {
                 }
                 self.block_offset_ = 0;
             }
-            assert!((kBlockSize - self.block_offset_)>= header_size);
-            let avail :usize= kBlockSize - self.block_offset_ - header_size;
-            let fragment_length :usize = if left<avail  {left} else {avail};
-            
+            assert!((kBlockSize - self.block_offset_) >= header_size);
+            let avail: usize = kBlockSize - self.block_offset_ - header_size;
+            fragment_length = if left < avail { left } else { avail };
+
+            let end: bool = (left == fragment_length);
+            if (begin && end) {
+                let mut rtype: RecordType = if self.recycle_log_files_ {
+                    RecordType::kRecyclableFullType
+                } else {
+                    RecordType::kFullType
+                };
+            } else if (begin) {
+                let mut rtype: RecordType = if self.recycle_log_files_ {
+                    RecordType::kRecyclableFirstType
+                } else {
+                    RecordType::kFirstType
+                };
+            } else if (end) {
+                let mut rtype: RecordType = if self.recycle_log_files_ {
+                    RecordType::kRecyclableLastType
+                } else {
+                    RecordType::kLastType
+                };
+            } else {
+                let mut rtype: RecordType = if self.recycle_log_files_ {
+                    RecordType::kRecyclableMiddleType
+                } else {
+                    RecordType::kMiddleType
+                };
+            };
         }
+        ptr = &ptr[fragment_length..];
+        left -= fragment_length;
     }
 }
