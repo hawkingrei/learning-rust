@@ -25,16 +25,16 @@ impl Write {
         size_t left = slice.size();
         */
         let mut ptr = slice.as_slice();
-        let left = mem::size_of_val(&slice.as_slice());
+        let mut left = mem::size_of_val(&slice.as_slice());
         let header_size = if self.recycle_log_files_ {
             kRecyclableHeaderSize
         } else {
             kHeaderSize
         };
 
-        let mut begin = true;
-        let mut fragment_length: usize;
         loop {
+            let mut begin = true;
+            let mut fragment_length: usize;
             let leftover: usize = kBlockSize - self.block_offset_;
             assert!(leftover >= 0);
 
@@ -79,13 +79,21 @@ impl Write {
                     RecordType::kMiddleType
                 };
             };
+            ptr = &ptr[fragment_length..];
+            left -= fragment_length;
+
+            if left <= 0 {
+                break;
+            }
         }
-        ptr = &ptr[fragment_length..];
-        left -= fragment_length;
     }
 
     fn EmitPhysicalRecord(t: RecordType, ptr: Vec<u8>, n: usize) {
         let header_size: usize = 0;
         let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
+
+        buf[4] = (n & 0xffusize) as u8;
+        buf[5] = (n >> 8) as u8;
+        buf[6] = t as u8;
     }
 }
