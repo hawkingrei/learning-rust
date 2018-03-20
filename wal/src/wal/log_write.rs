@@ -89,11 +89,25 @@ impl Write {
     }
 
     fn EmitPhysicalRecord(t: RecordType, ptr: Vec<u8>, n: usize) {
-        let header_size: usize = 0;
+        let mut header_size: usize = 0;
         let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
 
         buf[4] = (n & 0xffusize) as u8;
         buf[5] = (n >> 8) as u8;
         buf[6] = t as u8;
+
+        if ((t as u8) < RecordType::kRecyclableFullType as u8) {
+            header_size = kHeaderSize;
+        } else {
+            header_size = kRecyclableHeaderSize;
+        }
+    }
+
+    fn EncodeFixed32(value: u32) -> [u8; 4] {
+        if cfg!(target_endian = "little") {
+            unsafe { mem::transmute(value.to_le()) }
+        } else {
+            unsafe { mem::transmute(value.to_be()) }
+        }
     }
 }
