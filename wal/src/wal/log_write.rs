@@ -1,4 +1,4 @@
-use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kRecyclableHeaderSize};
+use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kMaxRecordType, kRecyclableHeaderSize};
 use std::mem;
 use hash::crc32;
 use wal;
@@ -9,15 +9,21 @@ struct Write {
     log_number_: u64,
     recycle_log_files_: bool,
     manual_flush_: bool,
+    type_crc_: Vec<u32>,
 }
 
 impl Write {
     fn new(log_number: u64, recycle_log_files: bool, manual_flush: bool) -> Write {
+        let mut type_crc: [u32; kMaxRecordType as usize + 1] = [0u32; kMaxRecordType as usize + 1];
+        for x in 0..kMaxRecordType + 1 {
+            type_crc[x as usize] = crc32(0, &[x]);
+        }
         Write {
             block_offset_: 0,
             log_number_: log_number,
             recycle_log_files_: recycle_log_files,
             manual_flush_: manual_flush,
+            type_crc_: type_crc.to_vec(),
         }
     }
     /*const Slice& slice*/
