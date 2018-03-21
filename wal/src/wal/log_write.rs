@@ -1,6 +1,6 @@
 use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kRecyclableHeaderSize};
 use std::mem;
-use hash::{crc16_arr, crc64};
+use hash::crc32;
 use wal;
 
 #[derive(Debug)]
@@ -101,6 +101,7 @@ impl Write {
 
         if ((t as u8) < RecordType::kRecyclableFullType as u8) {
             header_size = kHeaderSize;
+            crc32(0, &ptr[4..4 + 3 + n]);
         } else {
             header_size = kRecyclableHeaderSize;
             let lnSlice = wal::EncodeFixed64(self.log_number_);
@@ -108,6 +109,7 @@ impl Write {
             buf[8] = lnSlice[1];
             buf[9] = lnSlice[2];
             buf[10] = lnSlice[3];
+            crc32(0, &ptr[4..4 + 7 + n]);
         }
     }
 }

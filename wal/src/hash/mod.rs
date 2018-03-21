@@ -1,6 +1,8 @@
 mod crc16;
 mod crc64;
+mod crc32;
 
+pub use self::crc32::crc32;
 // used for protecting large snapshot files
 pub use self::crc64::crc64;
 
