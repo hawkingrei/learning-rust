@@ -1,5 +1,7 @@
 use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kRecyclableHeaderSize};
 use std::mem;
+use hash::{crc16_arr, crc64};
+use wal;
 
 #[derive(Debug)]
 struct Write {
@@ -88,9 +90,10 @@ impl Write {
         }
     }
 
-    fn EmitPhysicalRecord(t: RecordType, ptr: Vec<u8>, n: usize) {
+    fn EmitPhysicalRecord(&self, t: RecordType, ptr: Vec<u8>, n: usize) {
         let mut header_size: usize = 0;
         let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
+        let mut crc: [u8; 4] = [0u8; 4];
 
         buf[4] = (n & 0xffusize) as u8;
         buf[5] = (n >> 8) as u8;
@@ -100,14 +103,11 @@ impl Write {
             header_size = kHeaderSize;
         } else {
             header_size = kRecyclableHeaderSize;
-        }
-    }
-
-    fn EncodeFixed32(value: u32) -> [u8; 4] {
-        if cfg!(target_endian = "little") {
-            unsafe { mem::transmute(value.to_le()) }
-        } else {
-            unsafe { mem::transmute(value.to_be()) }
+            let lnSlice = wal::EncodeFixed64(self.log_number_);
+            buf[7] = lnSlice[0];
+            buf[8] = lnSlice[1];
+            buf[9] = lnSlice[2];
+            buf[10] = lnSlice[3];
         }
     }
 }
