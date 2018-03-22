@@ -62,31 +62,33 @@ impl Write {
             fragment_length = if left < avail { left } else { avail };
 
             let end: bool = (left == fragment_length);
+            let mut rtype: RecordType;
             if (begin && end) {
-                let mut rtype: RecordType = if self.recycle_log_files_ {
+                rtype = if self.recycle_log_files_ {
                     RecordType::kRecyclableFullType
                 } else {
                     RecordType::kFullType
                 };
             } else if (begin) {
-                let mut rtype: RecordType = if self.recycle_log_files_ {
+                rtype = if self.recycle_log_files_ {
                     RecordType::kRecyclableFirstType
                 } else {
                     RecordType::kFirstType
                 };
             } else if (end) {
-                let mut rtype: RecordType = if self.recycle_log_files_ {
+                rtype = if self.recycle_log_files_ {
                     RecordType::kRecyclableLastType
                 } else {
                     RecordType::kLastType
                 };
             } else {
-                let mut rtype: RecordType = if self.recycle_log_files_ {
+                rtype = if self.recycle_log_files_ {
                     RecordType::kRecyclableMiddleType
                 } else {
                     RecordType::kMiddleType
                 };
             };
+            self.EmitPhysicalRecord(rtype, ptr.to_vec(), fragment_length);
             ptr = &ptr[fragment_length..];
             left -= fragment_length;
 
