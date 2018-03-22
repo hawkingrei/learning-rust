@@ -99,7 +99,7 @@ impl Write {
     fn EmitPhysicalRecord(&self, t: RecordType, ptr: Vec<u8>, n: usize) {
         let mut header_size: usize = 0;
         let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
-        let mut crc: [u8; 4] = [0u8; 4];
+        let mut crc = self.type_crc_[t as usize];
 
         buf[4] = (n & 0xffusize) as u8;
         buf[5] = (n >> 8) as u8;
@@ -107,7 +107,7 @@ impl Write {
 
         if ((t as u8) < RecordType::kRecyclableFullType as u8) {
             header_size = kHeaderSize;
-            crc32(0, &ptr[4..kHeaderSize + n]);
+            crc = crc32(crc, &buf[4..kHeaderSize]);
         } else {
             header_size = kRecyclableHeaderSize;
             let lnSlice = wal::EncodeFixed64(self.log_number_);
@@ -115,7 +115,9 @@ impl Write {
             buf[8] = lnSlice[1];
             buf[9] = lnSlice[2];
             buf[10] = lnSlice[3];
-            crc32(0, &ptr[4..kRecyclableHeaderSize + n]);
+            crc = crc32(crc, &buf[4..kRecyclableHeaderSize]);
         }
+        crc = crc32(crc, &ptr.as_slice());
+        buf[..4].clone_from_slice(&wal::EncodeFixed32(crc));
     }
 }
