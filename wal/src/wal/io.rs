@@ -47,6 +47,19 @@ impl PosixWritableFile {
             libc::fsync(self.fd_);
         }
     }
+
+    fn Close(&self) {
+        unsafe {
+            libc::close(self.fd_);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn Allocate(&self,offset :i64,len :i64) {
+        unsafe {
+            libc::fallocate(self.fd_,libc::FALLOC_FL_KEEP_SIZE,offset,len);
+        }
+    }
 }
 
 #[test]
@@ -54,4 +67,5 @@ fn test_append() {
     let mut p = PosixWritableFile::new(String::from("hello"), true);
     p.Append(String::from("hello").into_bytes());
     p.Sync();
+    p.Close();
 }
