@@ -42,7 +42,7 @@ impl Write {
 
         loop {
             let mut begin = true;
-            let mut fragment_length: usize;
+            let fragment_length: usize;
             let leftover: usize = kBlockSize - self.block_offset_;
             assert!(leftover >= 0);
 
@@ -62,7 +62,7 @@ impl Write {
             fragment_length = if left < avail { left } else { avail };
 
             let end: bool = (left == fragment_length);
-            let mut rtype: RecordType;
+            let rtype: RecordType;
             if (begin && end) {
                 rtype = if self.recycle_log_files_ {
                     RecordType::kRecyclableFullType

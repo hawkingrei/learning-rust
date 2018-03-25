@@ -59,7 +59,7 @@ fn toString<'a>(s: &'a State) -> &'a str {
 
 #[test]
 fn test_state() {
-    let mut s = State::new(Code::kOk, String::from("a"), String::from("b"));
+    let s = State::new(Code::kOk, String::from("a"), String::from("b"));
     assert_eq!(true, isOk(s.clone()));
     assert_eq!(&String::from("a: b"), toString(&s))
 }

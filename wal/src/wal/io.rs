@@ -64,7 +64,7 @@ impl PosixWritableFile {
 
 #[test]
 fn test_append() {
-    let mut p = PosixWritableFile::new(String::from("hello"), true);
+    let p = PosixWritableFile::new(String::from("hello"), true);
     p.Append(String::from("hello").into_bytes());
     p.Sync();
     p.Close();
