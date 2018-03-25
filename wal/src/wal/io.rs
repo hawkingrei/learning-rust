@@ -2,6 +2,7 @@ use libc;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
+use wal::WritableFile;
 #[derive(Debug)]
 struct PosixWritableFile {
     filename_: String,
@@ -11,8 +12,8 @@ struct PosixWritableFile {
     //logical_sector_size_: u64,
 }
 
-impl PosixWritableFile {
-    fn new(filename: String, reopen: bool) -> PosixWritableFile {
+impl WritableFile for PosixWritableFile {
+     fn new(filename: String, reopen: bool) -> PosixWritableFile {
         let fd;
         unsafe {
             fd = libc::open(

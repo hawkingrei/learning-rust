@@ -63,3 +63,12 @@ fn test_state() {
     assert_eq!(true, isOk(s.clone()));
     assert_eq!(&String::from("a: b"), toString(&s))
 }
+
+trait WritableFile{
+    fn new(filename:String,reopen:bool) -> Self;
+    fn Append(&self,data:Vec<u8>);
+    fn Sync(&self);
+    fn Close(&self);
+    #[cfg(target_os = "linux")]
+    fn Allocate(&self,offset :i64,len :i64);
+}   
