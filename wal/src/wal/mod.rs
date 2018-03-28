@@ -1,3 +1,4 @@
+pub mod env;
 mod io;
 mod log_format;
 pub mod log_write;
@@ -5,6 +6,7 @@ use hash;
 use libc;
 use std::mem;
 use std::str;
+use wal;
 
 pub fn EncodeFixed32(value: u32) -> [u8; 4] {
     if cfg!(target_endian = "little") {
@@ -47,30 +49,46 @@ impl State {
         state.append(&mut msg.into_bytes());
         State { state_: state }
     }
+
+    fn ok() -> State {
+        State::new(Code::kOk, "".to_string(), "".to_string())
+    }
+
+    fn not_supported() -> State {
+        State::new(Code::kNotSupported, "".to_string(), "".to_string())
+    }
+
+    fn isOk(s: State) -> bool {
+        s.state_[4] as u8 == Code::kOk as u8
+    }
+
+    fn to_string<'a>(s: &'a State) -> &'a str {
+        str::from_utf8(&s.state_[5..]).unwrap()
+    }
 }
 
-fn isOk(s: State) -> bool {
-    s.state_[4] as u8 == Code::kOk as u8
-}
+trait WritableFile {
+    fn new(filename: String, reopen: bool, preallocation_block_size: usize) -> Self;
+    fn append(&self, data: Vec<u8>) -> Result<State, State>;
+    fn sync(&self) -> Result<State, State>;
+    fn close(&self) -> Result<State, State>;
+    #[cfg(target_os = "linux")]
+    fn allocate(&self, offset: i64, len: i64);
+    #[cfg(target_os = "linux")]
+    fn prepare_write(&mut self, offset: usize, len: usize);
 
-fn toString<'a>(s: &'a State) -> &'a str {
-    str::from_utf8(&s.state_[5..]).unwrap()
+    fn positioned_append(data: Vec<u8>, offset: usize) -> Result<State, State> {
+        return Err(State::not_supported());
+    }
+
+    fn fsync(&self) -> Result<State, State> {
+        return self.sync();
+    }
 }
 
 #[test]
 fn test_state() {
     let s = State::new(Code::kOk, String::from("a"), String::from("b"));
-    assert_eq!(true, isOk(s.clone()));
-    assert_eq!(&String::from("a: b"), toString(&s))
-}
-
-trait WritableFile {
-    fn new(filename: String, reopen: bool, preallocation_block_size: usize) -> Self;
-    fn Append(&self, data: Vec<u8>);
-    fn Sync(&self);
-    fn Close(&self);
-    #[cfg(target_os = "linux")]
-    fn Allocate(&self, offset: i64, len: i64);
-    #[cfg(target_os = "linux")]
-    fn prepare_write(&mut self, offset: usize, len: usize);
+    assert_eq!(true, State::isOk(s.clone()));
+    assert_eq!(&String::from("a: b"), State::to_string(&s))
 }

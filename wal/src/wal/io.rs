@@ -2,6 +2,8 @@ use libc;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
+use wal::Code;
+use wal::State;
 use wal::WritableFile;
 #[derive(Debug)]
 struct PosixWritableFile {
@@ -38,30 +40,57 @@ impl WritableFile for PosixWritableFile {
         }
     }
 
-    fn Append(&self, data: Vec<u8>) {
+    fn append(&self, data: Vec<u8>) -> Result<State, State> {
+        let state: isize;
         unsafe {
-            libc::write(
+            state = libc::write(
                 self.fd_,
                 data.as_ptr() as *const libc::c_void,
                 mem::size_of_val(data.as_slice()),
             );
         }
+        if state < 0 {
+            return Err(State::new(
+                Code::kIOError,
+                "cannot append".to_string(),
+                "".to_string(),
+            ));
+        }
+        return Ok(State::ok());
     }
 
-    fn Sync(&self) {
+    fn sync(&self) -> Result<State, State> {
+        let state: i32;
         unsafe {
-            libc::fsync(self.fd_);
+            state = libc::fsync(self.fd_);
         }
+        if state < 0 {
+            return Err(State::new(
+                Code::kIOError,
+                "cannot sync".to_string(),
+                "".to_string(),
+            ));
+        }
+        return Ok(State::ok());
     }
 
-    fn Close(&self) {
+    fn close(&self) -> Result<State, State> {
+        let state: i32;
         unsafe {
-            libc::close(self.fd_);
+            state = libc::close(self.fd_);
         }
+        if state < 0 {
+            return Err(State::new(
+                Code::kIOError,
+                "cannot close".to_string(),
+                "".to_string(),
+            ));
+        }
+        return Ok(State::ok());
     }
 
     #[cfg(target_os = "linux")]
-    fn Allocate(&self, offset: i64, len: i64) {
+    fn allocate(&self, offset: i64, len: i64) {
         unsafe {
             libc::fallocate(self.fd_, libc::FALLOC_FL_KEEP_SIZE, offset, len);
         }
@@ -76,7 +105,7 @@ impl WritableFile for PosixWritableFile {
         let new_last_preallocated_block = (offset + len + block_size - 1) / block_size;
         if (new_last_preallocated_block > self.last_preallocated_block_) {
             let num_spanned_blocks = new_last_preallocated_block - self.last_preallocated_block_;
-            self.Allocate(
+            self.allocate(
                 (block_size * self.last_preallocated_block_) as i64,
                 (block_size * num_spanned_blocks) as i64,
             );
@@ -88,7 +117,7 @@ impl WritableFile for PosixWritableFile {
 #[test]
 fn test_append() {
     let p = PosixWritableFile::new(String::from("hello"), true, 20);
-    p.Append(String::from("hello").into_bytes());
-    p.Sync();
-    p.Close();
+    p.append(String::from("hello").into_bytes());
+    p.sync();
+    p.close();
 }
