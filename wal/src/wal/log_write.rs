@@ -1,10 +1,13 @@
-use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kMaxRecordType, kRecyclableHeaderSize};
-use std::mem;
 use hash::crc32;
+use std::mem;
 use wal;
+use wal::file_reader_writer::WritableFileWriter;
+use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kMaxRecordType, kRecyclableHeaderSize};
+use wal::state;
 
 #[derive(Debug)]
-struct Write {
+struct Write<T: wal::WritableFile> {
+    dest_: WritableFileWriter<T>,
     block_offset_: usize, // Current offset in block
     log_number_: u64,
     recycle_log_files_: bool,
@@ -12,13 +15,19 @@ struct Write {
     type_crc_: Vec<u32>,
 }
 
-impl Write {
-    fn new(log_number: u64, recycle_log_files: bool, manual_flush: bool) -> Write {
+impl<T: wal::WritableFile> Write<T> {
+    fn new(
+        dest: WritableFileWriter<T>,
+        log_number: u64,
+        recycle_log_files: bool,
+        manual_flush: bool,
+    ) -> Write<T> {
         let mut type_crc: [u32; kMaxRecordType as usize + 1] = [0u32; kMaxRecordType as usize + 1];
         for x in 0..kMaxRecordType + 1 {
             type_crc[x as usize] = crc32(0, &[x]);
         }
         Write {
+            dest_: dest,
             block_offset_: 0,
             log_number_: log_number,
             recycle_log_files_: recycle_log_files,
@@ -49,11 +58,11 @@ impl Write {
             if (leftover < header_size) {
                 if (leftover > 0) {
                     assert!(header_size <= 11);
-                    /*
-                dest_->Append(
-                    Slice("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
-                    static_cast<size_t>(leftover)));
-                */
+                    self.dest_.append(
+                        vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+                            [..leftover]
+                            .to_vec(),
+                    );
                 }
                 self.block_offset_ = 0;
             }
@@ -88,17 +97,17 @@ impl Write {
                     RecordType::kMiddleType
                 };
             };
-            self.EmitPhysicalRecord(rtype, ptr.to_vec(), fragment_length);
+            self.emit_physical_record(rtype, ptr.to_vec(), fragment_length);
             ptr = &ptr[fragment_length..];
             left -= fragment_length;
-
+            begin = false;
             if left <= 0 {
                 break;
             }
         }
     }
 
-    fn EmitPhysicalRecord(&self, t: RecordType, ptr: Vec<u8>, n: usize) {
+    fn emit_physical_record(&mut self, t: RecordType, ptr: Vec<u8>, n: usize) -> state {
         let mut header_size: usize = 0;
         let mut buf: [u8; kRecyclableHeaderSize] = [0u8; kRecyclableHeaderSize];
         let mut crc = self.type_crc_[t as usize];
@@ -121,5 +130,17 @@ impl Write {
         }
         crc = crc32(crc, &ptr.as_slice());
         buf[..4].clone_from_slice(&wal::EncodeFixed32(crc));
+
+        let mut s = self.dest_.append(buf[..header_size].to_vec());
+        if s.isOk() {
+            s = self.dest_.append(ptr);
+            if s.isOk() {
+                if self.manual_flush_ {
+                    s = self.dest_.flush()
+                }
+            }
+        }
+        self.block_offset_ += header_size + n;
+        return s;
     }
 }

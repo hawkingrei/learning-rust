@@ -1,4 +1,5 @@
 pub mod env;
+mod file_reader_writer;
 mod io;
 mod log_format;
 pub mod log_write;
@@ -35,60 +36,71 @@ pub enum Code {
 }
 
 #[derive(Debug, Clone)]
-struct State {
+struct state {
     state_: Vec<u8>,
 }
 
-impl State {
-    fn new(code: Code, msg1: String, msg2: String) -> State {
+impl state {
+    fn new(code: Code, msg1: String, msg2: String) -> state {
         let msg = msg1 + &String::from(": ") + &msg2;
         let size = mem::size_of_val(&msg);
         let mut state: Vec<u8> = Vec::with_capacity(size + 5);
         state.extend(EncodeFixed32(size as u32).iter().cloned());
         state.extend([code as u8].iter().cloned());
         state.append(&mut msg.into_bytes());
-        State { state_: state }
+        state { state_: state }
     }
 
-    fn ok() -> State {
-        State::new(Code::kOk, "".to_string(), "".to_string())
+    fn ok() -> state {
+        state::new(Code::kOk, "".to_string(), "".to_string())
     }
 
-    fn not_supported() -> State {
-        State::new(Code::kNotSupported, "".to_string(), "".to_string())
+    fn not_supported() -> state {
+        state::new(Code::kNotSupported, "".to_string(), "".to_string())
     }
 
-    fn isOk(s: State) -> bool {
-        s.state_[4] as u8 == Code::kOk as u8
+    fn isOk(&self) -> bool {
+        self.state_[4] as u8 == Code::kOk as u8
     }
 
-    fn to_string<'a>(s: &'a State) -> &'a str {
+    fn to_string<'a>(s: &'a state) -> &'a str {
         str::from_utf8(&s.state_[5..]).unwrap()
     }
 }
 
-trait WritableFile {
+pub trait WritableFile: Sized {
     fn new(filename: String, reopen: bool, preallocation_block_size: usize) -> Self;
-    fn append(&self, data: Vec<u8>) -> Result<State, State>;
-    fn sync(&self) -> Result<State, State>;
-    fn close(&self) -> Result<State, State>;
+    fn append(&mut self, data: Vec<u8>) -> Result<state, state>;
+    fn sync(&self) -> Result<state, state>;
+    fn close(&self) -> Result<state, state>;
     #[cfg(target_os = "linux")]
-    fn allocate(&self, offset: i64, len: i64);
-    #[cfg(target_os = "linux")]
-    fn prepare_write(&mut self, offset: usize, len: usize);
-
-    fn positioned_append(data: Vec<u8>, offset: usize) -> Result<State, State> {
-        return Err(State::not_supported());
+    fn sync_file_range(&self, offset: i64, nbytes: i64) -> Result<state, state>;
+    fn allocate(&self, offset: i64, len: i64) -> Result<state, state> {
+        return Ok(state::ok());
     }
 
-    fn fsync(&self) -> Result<State, State> {
+    fn prepare_write(&mut self, offset: usize, len: usize) {}
+
+    fn positioned_append(data: Vec<u8>, offset: usize) -> Result<state, state> {
+        return Err(state::not_supported());
+    }
+
+    fn fsync(&self) -> Result<state, state> {
         return self.sync();
+    }
+
+    fn get_file_size(&self) -> usize {
+        0
+    }
+
+    fn use_direct_io(&self) -> bool {
+        false
     }
 }
 
 #[test]
 fn test_state() {
-    let s = State::new(Code::kOk, String::from("a"), String::from("b"));
-    assert_eq!(true, State::isOk(s.clone()));
-    assert_eq!(&String::from("a: b"), State::to_string(&s))
+    let s = state::new(Code::kOk, String::from("a"), String::from("b"));
+    assert_eq!(true, s.isOk());
+    assert_eq!(&String::from("a: b"), state::to_string(&s))
 }

@@ -3,16 +3,16 @@ use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
 use wal::Code;
-use wal::State;
 use wal::WritableFile;
+use wal::state;
 #[derive(Debug)]
-struct PosixWritableFile {
+pub struct PosixWritableFile {
     filename_: String,
     use_direct_io_: bool,
     fd_: i32,
-
     preallocation_block_size_: usize,
     last_preallocated_block_: usize,
+    filesize_: usize,
     //filesize_: u64,
     //logical_sector_size_: u64,
 }
@@ -37,10 +37,11 @@ impl WritableFile for PosixWritableFile {
             fd_: fd,
             preallocation_block_size_: preallocation_block_size,
             last_preallocated_block_: 0,
+            filesize_: 0,
         }
     }
 
-    fn append(&self, data: Vec<u8>) -> Result<State, State> {
+    fn append(&mut self, data: Vec<u8>) -> Result<state, state> {
         let state: isize;
         unsafe {
             state = libc::write(
@@ -50,50 +51,76 @@ impl WritableFile for PosixWritableFile {
             );
         }
         if state < 0 {
-            return Err(State::new(
+            return Err(state::new(
                 Code::kIOError,
                 "cannot append".to_string(),
                 "".to_string(),
             ));
         }
-        return Ok(State::ok());
+        self.filesize_ += mem::size_of_val(data.as_slice());
+        return Ok(state::ok());
     }
 
-    fn sync(&self) -> Result<State, State> {
+    fn sync(&self) -> Result<state, state> {
         let state: i32;
         unsafe {
             state = libc::fsync(self.fd_);
         }
         if state < 0 {
-            return Err(State::new(
+            return Err(state::new(
                 Code::kIOError,
                 "cannot sync".to_string(),
                 "".to_string(),
             ));
         }
-        return Ok(State::ok());
+        return Ok(state::ok());
     }
 
-    fn close(&self) -> Result<State, State> {
+    fn close(&self) -> Result<state, state> {
         let state: i32;
         unsafe {
             state = libc::close(self.fd_);
         }
         if state < 0 {
-            return Err(State::new(
+            return Err(state::new(
                 Code::kIOError,
                 "cannot close".to_string(),
                 "".to_string(),
             ));
         }
-        return Ok(State::ok());
+        return Ok(state::ok());
     }
 
     #[cfg(target_os = "linux")]
-    fn allocate(&self, offset: i64, len: i64) {
+    fn sync_file_range(&self, offset: i64, nbytes: i64) -> Result<state, state> {
+        let state: i32;
         unsafe {
-            libc::fallocate(self.fd_, libc::FALLOC_FL_KEEP_SIZE, offset, len);
+            state = libc::sync_file_range(self.fd_, offset, nbytes, libc::SYNC_FILE_RANGE_WRITE);
         }
+        if state < 0 {
+            return Err(state::new(
+                Code::kIOError,
+                "cannot sync_file_range".to_string(),
+                "".to_string(),
+            ));
+        }
+        return Ok(state::ok());
+    }
+
+    #[cfg(target_os = "linux")]
+    fn allocate(&self, offset: i64, len: i64) -> Result<state, state> {
+        let state: i32;
+        unsafe {
+            state = libc::fallocate(self.fd_, libc::FALLOC_FL_KEEP_SIZE, offset, len);
+        }
+        if state < 0 {
+            return Err(state::new(
+                Code::kIOError,
+                "cannot allocate".to_string(),
+                "".to_string(),
+            ));
+        }
+        return Ok(state::ok());
     }
 
     #[cfg(target_os = "linux")]
@@ -112,11 +139,15 @@ impl WritableFile for PosixWritableFile {
             self.last_preallocated_block_ = new_last_preallocated_block;
         }
     }
+
+    fn use_direct_io(&self) -> bool {
+        return self.use_direct_io_;
+    }
 }
 
 #[test]
 fn test_append() {
-    let p = PosixWritableFile::new(String::from("hello"), true, 20);
+    let mut p = PosixWritableFile::new(String::from("hello"), true, 20);
     p.append(String::from("hello").into_bytes());
     p.sync();
     p.close();
