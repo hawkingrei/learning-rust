@@ -13,7 +13,6 @@ pub struct PosixWritableFile {
     preallocation_block_size_: usize,
     last_preallocated_block_: usize,
     filesize_: usize,
-    //filesize_: u64,
     //logical_sector_size_: u64,
 }
 
