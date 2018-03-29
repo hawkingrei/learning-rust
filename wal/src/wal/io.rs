@@ -15,20 +15,24 @@ pub struct PosixWritableFile {
     filesize_: usize,
     //logical_sector_size_: u64,
 }
+#[cfg(target_os = "macos")]
+fn get_flag() -> i32 {
+    libc::O_CREAT
+}
+
+#[cfg(not(target_os = "macos"))]
+fn get_flag() -> i32 {
+    libc::O_CREAT | libc::O_DIRECT
+}
 
 impl WritableFile for PosixWritableFile {
     fn new(filename: String, reopen: bool, preallocation_block_size: usize) -> PosixWritableFile {
         let fd;
-        let mut flag = if reopen {
-            libc::O_CREAT | libc::O_APPEND | libc::O_RDWR
+        let flag = if reopen {
+            get_flag() | libc::O_APPEND | libc::O_RDWR
         } else {
-            libc::O_CREAT | libc::O_TRUNC | libc::O_RDWR
+            get_flag() | libc::O_TRUNC | libc::O_RDWR
         };
-        //#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
-        //cfg!(not(target_os = "macos")) && cfg!(not(target_os = "openbsd"))
-        if cfg!(target_os = "linux") && cfg!(not(target_os = "macos")) {
-            flag = flag | libc::O_DIRECT;
-        }
         unsafe {
             fd = libc::open(
                 CString::from_vec_unchecked(filename.clone().into_bytes()).as_ptr(),
