@@ -1,4 +1,5 @@
 #![feature(alloc)]
+#![feature(align_offset)]
 mod hash;
 mod wal;
 extern crate alloc;

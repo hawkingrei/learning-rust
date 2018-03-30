@@ -1,5 +1,6 @@
 use alloc::raw_vec::RawVec;
-
+use std::mem::align_of;
+use std::ptr;
 #[inline]
 fn truncate_to_page_boundary(page_size: usize, s: usize) -> usize {
     assert!((s % page_size) == 0);
@@ -39,5 +40,8 @@ impl AlignedBuffer {
 
         let new_capacity = round_up(requested_cacacity, self.alignment_);
         self.buf_ = RawVec::with_capacity(new_capacity);
+        let new_bufstart = self.buf_.ptr().align_offset(align_of::<u8>());
+
+        if copy_data {}
     }
 }
