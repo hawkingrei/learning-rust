@@ -57,7 +57,8 @@ impl AlignedBuffer {
         let new_bufstart_offset = self.buf_.ptr().align_offset(align_of::<u8>());
         let new_bufstart;
         unsafe {
-            new_bufstart = self.buf_.ptr().offset(new_bufstart_offset as isize);
+            new_bufstart = self.buf_.ptr();
+            //.offset(new_bufstart_offset as isize);
             if copy_data {
                 ptr::copy_nonoverlapping(new_bufstart, self.bufstart_, self.cursize_);
             } else {
@@ -71,19 +72,21 @@ impl AlignedBuffer {
     }
 
     fn append(&mut self, src: Vec<u8>) -> usize {
-        let append_size = mem::size_of_val(&src.as_slice());
+        let append_size = mem::size_of_val(&src.clone().as_slice());
+        assert!(self.capacity_ > self.cursize_);
         let buffer_remaining = self.capacity_ - self.cursize_;
         let to_copy = min(append_size, buffer_remaining);
-        unsafe {
-            if to_copy > 0 {
+        if to_copy > 0 {
+            unsafe {
                 ptr::copy_nonoverlapping(
+                    src.as_ptr(),
                     self.bufstart_.offset(self.cursize_ as isize),
-                    src.clone().as_mut_ptr(),
                     to_copy,
                 );
-                self.cursize_ += to_copy;
             }
+            self.cursize_ += to_copy;
         }
+
         to_copy
     }
 
@@ -156,7 +159,7 @@ fn test_aligned_buffer() {
     let mut buf: AlignedBuffer = Default::default();
     buf.alignment(16);
     buf.allocate_new_buffer(100, false);
-    //let appended = buf.append(String::from("Hello, ").into_bytes());
+    let appended = buf.append(String::from("H").into_bytes());
     //let result = buf.read(0, appended);
     //unsafe {
     //    assert_eq!(String::from_utf8_unchecked(result), String::from("Hello, "));
