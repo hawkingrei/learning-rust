@@ -21,7 +21,7 @@ struct AlignedBuffer {
     buf_: RawVec<u8>,
     capacity_: usize,
     cursize_: usize,
-    bufstart_: usize,
+    bufstart_: *mut u8,
 }
 
 impl AlignedBuffer {
@@ -39,9 +39,20 @@ impl AlignedBuffer {
         }
 
         let new_capacity = round_up(requested_cacacity, self.alignment_);
-        self.buf_ = RawVec::with_capacity(new_capacity);
-        let new_bufstart = self.buf_.ptr().align_offset(align_of::<u8>());
+        let new_buf = RawVec::with_capacity(new_capacity);
+        let new_bufstart_offset = self.buf_.ptr().align_offset(align_of::<u8>());
+        let new_bufstart;
+        unsafe {
+            new_bufstart = self.buf_.ptr().offset(new_bufstart_offset as isize);
+            if copy_data {
+                ptr::copy_nonoverlapping(new_bufstart, self.bufstart_, self.cursize_);
+            } else {
+                self.cursize_ = 0;
+            }
+        }
 
-        if copy_data {}
+        self.bufstart_ = new_bufstart;
+        self.capacity_ = new_capacity;
+        self.buf_ = new_buf;
     }
 }
