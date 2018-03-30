@@ -1,5 +1,6 @@
 use alloc::raw_vec::RawVec;
 use std::cmp::min;
+use std::mem;
 use std::mem::align_of;
 use std::ptr;
 #[inline]
@@ -70,7 +71,7 @@ impl AlignedBuffer {
     }
 
     fn append(&mut self, src: Vec<u8>) -> usize {
-        let append_size = src.len();
+        let append_size = mem::size_of_val(&src.as_slice());
         let buffer_remaining = self.capacity_ - self.cursize_;
         let to_copy = min(append_size, buffer_remaining);
         unsafe {
