@@ -25,6 +25,18 @@ struct AlignedBuffer {
     bufstart_: *mut u8,
 }
 
+impl Default for AlignedBuffer {
+    fn default() -> Self {
+        AlignedBuffer {
+            alignment_: 0,
+            buf_: RawVec::with_capacity(0),
+            capacity_: 0,
+            cursize_: 0,
+            bufstart_: ptr::null_mut::<u8>(),
+        }
+    }
+}
+
 impl AlignedBuffer {
     fn alignment(&mut self, alignment: usize) {
         self.alignment_ = alignment;
@@ -137,3 +149,6 @@ impl AlignedBuffer {
         self.cursize_ = cursize;
     }
 }
+
+#[test]
+fn test_aligned_buffer() {}
