@@ -151,4 +151,13 @@ impl AlignedBuffer {
 }
 
 #[test]
-fn test_aligned_buffer() {}
+fn test_aligned_buffer() {
+    let mut buf: AlignedBuffer = Default::default();
+    buf.alignment(16);
+    buf.allocate_new_buffer(100, false);
+    //let appended = buf.append(String::from("Hello, ").into_bytes());
+    //let result = buf.read(0, appended);
+    //unsafe {
+    //    assert_eq!(String::from_utf8_unchecked(result), String::from("Hello, "));
+    //}
+}
