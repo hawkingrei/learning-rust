@@ -1,5 +1,7 @@
+#![feature(alloc)]
 mod hash;
 mod wal;
+extern crate alloc;
 extern crate libc;
 extern crate zstd;
 use hash::{crc16_arr, crc64};
