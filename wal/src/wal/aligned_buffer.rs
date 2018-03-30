@@ -1,4 +1,5 @@
 use alloc::raw_vec::RawVec;
+use std::cmp::min;
 use std::mem::align_of;
 use std::ptr;
 #[inline]
@@ -54,5 +55,40 @@ impl AlignedBuffer {
         self.bufstart_ = new_bufstart;
         self.capacity_ = new_capacity;
         self.buf_ = new_buf;
+    }
+
+    fn append(&mut self, src: Vec<u8>) -> usize {
+        let append_size = src.len();
+        let buffer_remaining = self.capacity_ - self.cursize_;
+        let to_copy = min(append_size, buffer_remaining);
+        unsafe {
+            if to_copy > 0 {
+                ptr::copy_nonoverlapping(
+                    self.bufstart_.offset(self.cursize_ as isize),
+                    src.clone().as_mut_ptr(),
+                    to_copy,
+                );
+                self.cursize_ += to_copy;
+            }
+        }
+        to_copy
+    }
+
+    fn read(&mut self, offset: usize, read_size: usize) -> Vec<u8> {
+        let mut result = Vec::with_capacity(read_size);
+        let mut to_read = 0;
+        if (offset < self.cursize_) {
+            to_read = min(self.cursize_ - offset, read_size);
+        }
+        unsafe {
+            if (to_read > 0) {
+                ptr::copy_nonoverlapping(
+                    result.as_mut_ptr(),
+                    self.bufstart_.offset(offset as isize),
+                    to_read,
+                );
+            }
+        }
+        result
     }
 }
