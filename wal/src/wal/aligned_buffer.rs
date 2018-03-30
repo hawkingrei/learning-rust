@@ -91,4 +91,49 @@ impl AlignedBuffer {
         }
         result
     }
+
+    fn pad_to_aligment_with(&mut self, padding: u8) {
+        let total_size = round_up(self.cursize_, self.alignment_);
+        let pad_size = total_size - self.cursize_;
+        if pad_size > 0 {
+            unsafe {
+                ptr::write_bytes(
+                    self.bufstart_.offset(self.cursize_ as isize),
+                    padding,
+                    pad_size,
+                );
+            }
+            self.cursize_ += pad_size;
+        }
+    }
+
+    fn pad_with(&mut self, pad_size: usize, padding: u8) {
+        assert!((pad_size + self.cursize_) <= self.capacity_);
+        unsafe {
+            ptr::write_bytes(
+                self.bufstart_.offset(self.cursize_ as isize),
+                padding,
+                pad_size,
+            );
+        }
+        self.cursize_ += pad_size;
+    }
+
+    // After a partial flush move the tail to the beginning of the buffer
+    fn RefitTail(&mut self, tail_offset: usize, tail_size: usize) {
+        if (tail_size > 0) {
+            unsafe {
+                ptr::copy(
+                    self.bufstart_,
+                    self.bufstart_.offset(tail_offset as isize),
+                    tail_size,
+                );
+            }
+        }
+        self.cursize_ = tail_size;
+    }
+
+    fn Size(&mut self, cursize: usize) {
+        self.cursize_ = cursize;
+    }
 }
