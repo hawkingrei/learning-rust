@@ -160,8 +160,8 @@ fn test_aligned_buffer() {
     let appended = buf.append(String::from("H").into_bytes());
     assert_eq!(appended, 16);
     let result = buf.read(0, appended);
-    assert_eq!(result.len(), 0);
-    //unsafe {
-    //    assert_eq!(String::from_utf8_unchecked(result), String::from("H"));
-    //}
+    //assert_eq!(result.len(), 0);
+    unsafe {
+        assert_eq!(String::from_utf8_unchecked(result), String::from("H"));
+    }
 }
