@@ -120,7 +120,7 @@ impl AlignedBuffer {
     }
 
     // After a partial flush move the tail to the beginning of the buffer
-    fn RefitTail(&mut self, tail_offset: usize, tail_size: usize) {
+    fn refit_tail(&mut self, tail_offset: usize, tail_size: usize) {
         if (tail_size > 0) {
             unsafe {
                 ptr::copy(
@@ -133,7 +133,7 @@ impl AlignedBuffer {
         self.cursize_ = tail_size;
     }
 
-    fn Size(&mut self, cursize: usize) {
+    fn size(&mut self, cursize: usize) {
         self.cursize_ = cursize;
     }
 }
