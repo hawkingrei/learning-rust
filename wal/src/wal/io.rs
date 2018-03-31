@@ -20,7 +20,8 @@ fn get_flag() -> i32 {
     libc::O_CREAT
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd",
+          target_os = "linux", target_os = "netbsd"))]
 fn get_flag() -> i32 {
     libc::O_CREAT | libc::O_DIRECT
 }
