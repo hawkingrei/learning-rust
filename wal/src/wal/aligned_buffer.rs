@@ -54,20 +54,20 @@ impl AlignedBuffer {
         }
 
         let new_capacity = round_up(requested_cacacity, self.alignment_);
-        let new_buf = RawVec::with_capacity(new_capacity + 1);
-        let new_bufstart_offset = self.buf_.ptr().align_offset(self.alignment_);
-        let new_bufstart;
+        let new_buf = RawVec::with_capacity_zeroed(new_capacity + 1);
+        //let new_bufstart_offset = self.buf_.ptr().align_offset(self.alignment_);
+        //let new_bufstart;
         unsafe {
-            new_bufstart = self.buf_.ptr().offset(new_bufstart_offset as isize);
+            //new_bufstart = self.buf_.ptr().offset(new_bufstart_offset as isize);
             if copy_data {
                 //ptr::write()
-                ptr::copy_nonoverlapping(new_bufstart, self.bufstart_, self.cursize_);
+                ptr::copy_nonoverlapping(new_buf.ptr(), self.bufstart_, self.cursize_);
             } else {
                 self.cursize_ = 0;
             }
         }
 
-        self.bufstart_ = new_bufstart;
+        self.bufstart_ = new_buf.ptr();
         self.capacity_ = new_capacity;
         self.buf_ = new_buf;
     }
@@ -91,13 +91,13 @@ impl AlignedBuffer {
     }
 
     fn read(&mut self, offset: usize, read_size: usize) -> Vec<u8> {
-        let mut result = Vec::with_capacity(read_size);
+        let mut result = vec![0; read_size];
         let mut to_read = 0;
         if (offset < self.cursize_) {
             to_read = min(self.cursize_ - offset, read_size);
         }
-        unsafe {
-            if (to_read > 0) {
+        if (to_read > 0) {
+            unsafe {
                 ptr::copy_nonoverlapping(
                     self.bufstart_.offset(offset as isize),
                     result.as_mut_ptr(),
@@ -199,10 +199,9 @@ fn test_aligned_buffer() {
     buf.alignment(4);
     buf.allocate_new_buffer(16, false);
     let appended = buf.append(String::from("abc").into_bytes());
-    println!("{:?}", buf);
     let result = buf.read(0, appended);
-    assert_eq!(result.len(), 0);
-    //unsafe {
-    //    assert_eq!(String::from_utf8_unchecked(result), String::from("H"));
-    //}
+    assert_eq!(result.len(), 3);
+    unsafe {
+        assert_eq!(String::from_utf8_unchecked(result), String::from("abc"));
+    }
 }
