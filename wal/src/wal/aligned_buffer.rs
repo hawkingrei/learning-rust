@@ -30,9 +30,9 @@ pub struct AlignedBuffer {
 impl Default for AlignedBuffer {
     fn default() -> Self {
         AlignedBuffer {
-            alignment_: 0,
+            alignment_: 4,
             buf_: RawVec::with_capacity(1),
-            capacity_: 0,
+            capacity_: 1,
             cursize_: 0,
             bufstart_: ptr::null_mut::<u8>(),
         }

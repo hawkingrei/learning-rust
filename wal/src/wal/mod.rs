@@ -118,5 +118,6 @@ fn test_state() {
 #[test]
 fn test_wal() {
     let mut fd = PosixWritableFile::new("test".to_string(), true, 1024 * 1024);
-    WritableFileWriter::new(fd, Default::default());
+    let mut writer = WritableFileWriter::new(fd, Default::default());
+    writer.append(vec![1, 2, 3, 4, 5]);
 }

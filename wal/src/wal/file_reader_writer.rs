@@ -43,7 +43,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
             let fsize = self.get_file_size();
             self.writable_file_.prepare_write(fsize, left);
         }
-
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             let mut cap = self.buf_.get_capacity();
             while (cap < self.max_buffer_size_) {
@@ -60,7 +59,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 cap *= 2;
             }
         }
-
         // Flush only when buffered I/O
         if !self.writable_file_.use_direct_io()
             && (self.buf_.get_capacity() - self.buf_.get_current_size() < left)
