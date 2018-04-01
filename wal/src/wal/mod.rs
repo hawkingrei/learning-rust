@@ -71,22 +71,28 @@ impl state {
 
 pub trait WritableFile: Sized {
     fn new(filename: String, reopen: bool, preallocation_block_size: usize) -> Self;
-    fn append(&mut self, data: Vec<u8>) -> Result<state, state>;
-    fn sync(&self) -> Result<state, state>;
-    fn close(&self) -> Result<state, state>;
+    fn append(&mut self, data: Vec<u8>) -> state;
+    fn sync(&self) -> state;
+    fn close(&self) -> state;
+    fn flush(&self) -> state;
     #[cfg(target_os = "linux")]
-    fn sync_file_range(&self, offset: i64, nbytes: i64) -> Result<state, state>;
-    fn allocate(&self, offset: i64, len: i64) -> Result<state, state> {
-        return Ok(state::ok());
+    fn range_sync(&self, offset: i64, nbytes: i64) -> state;
+
+    fn range_sync(&self, offset: i64, nbytes: i64) -> state {
+        return state::ok();
+    }
+
+    fn allocate(&self, offset: i64, len: i64) -> state {
+        return state::ok();
     }
 
     fn prepare_write(&mut self, offset: usize, len: usize) {}
 
-    fn positioned_append(data: Vec<u8>, offset: usize) -> Result<state, state> {
-        return Err(state::not_supported());
+    fn positioned_append(data: Vec<u8>, offset: usize) -> state {
+        return state::not_supported();
     }
 
-    fn fsync(&self) -> Result<state, state> {
+    fn fsync(&self) -> state {
         return self.sync();
     }
 

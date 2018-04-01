@@ -51,7 +51,7 @@ impl WritableFile for PosixWritableFile {
         }
     }
 
-    fn append(&mut self, data: Vec<u8>) -> Result<state, state> {
+    fn append(&mut self, data: Vec<u8>) -> state {
         let state: isize;
         unsafe {
             state = libc::write(
@@ -61,76 +61,64 @@ impl WritableFile for PosixWritableFile {
             );
         }
         if state < 0 {
-            return Err(state::new(
-                Code::kIOError,
-                "cannot append".to_string(),
-                "".to_string(),
-            ));
+            return state::new(Code::kIOError, "cannot append".to_string(), "".to_string());
         }
         self.filesize_ += mem::size_of_val(data.as_slice());
-        return Ok(state::ok());
+        return state::ok();
     }
 
-    fn sync(&self) -> Result<state, state> {
+    fn sync(&self) -> state {
         let state: i32;
         unsafe {
             state = libc::fsync(self.fd_);
         }
         if state < 0 {
-            return Err(state::new(
-                Code::kIOError,
-                "cannot sync".to_string(),
-                "".to_string(),
-            ));
+            return state::new(Code::kIOError, "cannot sync".to_string(), "".to_string());
         }
-        return Ok(state::ok());
+        return state::ok();
     }
 
-    fn close(&self) -> Result<state, state> {
+    fn close(&self) -> state {
         let state: i32;
         unsafe {
             state = libc::close(self.fd_);
         }
         if state < 0 {
-            return Err(state::new(
-                Code::kIOError,
-                "cannot close".to_string(),
-                "".to_string(),
-            ));
+            return state::new(Code::kIOError, "cannot close".to_string(), "".to_string());
         }
-        return Ok(state::ok());
+        return state::ok();
     }
 
     #[cfg(target_os = "linux")]
-    fn sync_file_range(&self, offset: i64, nbytes: i64) -> Result<state, state> {
+    fn range_sync(&self, offset: i64, nbytes: i64) -> state {
         let state: i32;
         unsafe {
             state = libc::sync_file_range(self.fd_, offset, nbytes, libc::SYNC_FILE_RANGE_WRITE);
         }
         if state < 0 {
-            return Err(state::new(
+            return state::new(
                 Code::kIOError,
                 "cannot sync_file_range".to_string(),
                 "".to_string(),
-            ));
+            );
         }
-        return Ok(state::ok());
+        return state::ok();
     }
 
     #[cfg(target_os = "linux")]
-    fn allocate(&self, offset: i64, len: i64) -> Result<state, state> {
+    fn allocate(&self, offset: i64, len: i64) -> state {
         let state: i32;
         unsafe {
             state = libc::fallocate(self.fd_, libc::FALLOC_FL_KEEP_SIZE, offset, len);
         }
         if state < 0 {
-            return Err(state::new(
+            return state::new(
                 Code::kIOError,
                 "cannot allocate".to_string(),
                 "".to_string(),
-            ));
+            );
         }
-        return Ok(state::ok());
+        return state::ok();
     }
 
     #[cfg(target_os = "linux")]
@@ -148,6 +136,10 @@ impl WritableFile for PosixWritableFile {
             );
             self.last_preallocated_block_ = new_last_preallocated_block;
         }
+    }
+
+    fn flush(&self) -> state {
+        return state::ok();
     }
 
     fn use_direct_io(&self) -> bool {

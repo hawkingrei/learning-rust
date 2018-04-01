@@ -19,7 +19,7 @@ fn Rounddown(x: usize, y: usize) -> usize {
     return (x / y) * y;
 }
 
-struct AlignedBuffer {
+pub struct AlignedBuffer {
     alignment_: usize,
     buf_: RawVec<u8>,
     capacity_: usize,
@@ -40,11 +40,23 @@ impl Default for AlignedBuffer {
 }
 
 impl AlignedBuffer {
+    fn get_alignment(&self) -> usize {
+        return self.alignment_;
+    }
+
+    pub fn get_capacity(&self) -> usize {
+        return self.capacity_;
+    }
+
+    pub fn get_current_size(&self) -> usize {
+        return self.cursize_;
+    }
+
     fn alignment(&mut self, alignment: usize) {
         self.alignment_ = alignment;
     }
 
-    fn allocate_new_buffer(&mut self, requested_cacacity: usize, copy_data: bool) {
+    pub fn allocate_new_buffer(&mut self, requested_cacacity: usize, copy_data: bool) {
         assert!(self.alignment_ > 0);
         assert!((self.alignment_ & (self.alignment_ - 1)) == 0);
         if (copy_data && requested_cacacity < self.cursize_) {
