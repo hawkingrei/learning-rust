@@ -78,11 +78,11 @@ pub trait WritableFile: Sized {
     #[cfg(target_os = "linux")]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state;
 
+    #[cfg(not(target_os = "linux"))]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state {
         return state::ok();
     }
 
-    #[cfg(not(target_os = "linux"))]
     fn allocate(&self, offset: i64, len: i64) -> state {
         return state::ok();
     }
