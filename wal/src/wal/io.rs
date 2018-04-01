@@ -15,6 +15,7 @@ pub struct PosixWritableFile {
     filesize_: usize,
     //logical_sector_size_: u64,
 }
+
 #[cfg(target_os = "macos")]
 fn get_flag() -> i32 {
     libc::O_CREAT

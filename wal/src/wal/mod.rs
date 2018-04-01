@@ -1,6 +1,6 @@
 mod aligned_buffer;
 pub mod env;
-mod file_reader_writer;
+pub mod file_reader_writer;
 mod io;
 mod log_format;
 pub mod log_write;
@@ -9,6 +9,8 @@ use libc;
 use std::mem;
 use std::str;
 use wal;
+use wal::file_reader_writer::WritableFileWriter;
+use wal::io::PosixWritableFile;
 
 pub fn EncodeFixed32(value: u32) -> [u8; 4] {
     if cfg!(target_endian = "little") {
@@ -114,4 +116,7 @@ fn test_state() {
 }
 
 #[test]
-fn test_wal() {}
+fn test_wal() {
+    let mut fd = PosixWritableFile::new("test".to_string(), true, 1024 * 1024);
+    WritableFileWriter::new(fd, Default::default());
+}
