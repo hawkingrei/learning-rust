@@ -112,3 +112,6 @@ fn test_state() {
     assert_eq!(true, s.isOk());
     assert_eq!(&String::from("a: b"), state::to_string(&s))
 }
+
+#[test]
+fn test_wal() {}
