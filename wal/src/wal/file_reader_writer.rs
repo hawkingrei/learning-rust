@@ -21,6 +21,8 @@ pub struct WritableFileWriter<T: WritableFile> {
 
 impl<T: WritableFile> WritableFileWriter<T> {
     pub fn append(&mut self, slice: Vec<u8>) -> state {
+        let mut s: state = state::ok();
+        let mut src = 0;
         let mut ptr = slice.as_slice();
         let mut left = mem::size_of_val(&slice.as_slice());
         self.pending_sync_ = true;
@@ -32,6 +34,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             let mut cap = self.buf_.get_capacity();
             while (cap < self.max_buffer_size_) {
+                // See whether the next available size is large enough.
+                // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
                 if (desired_capacity - self.buf_.get_current_size() >= left
                     || (self.writable_file_.use_direct_io()
@@ -44,10 +48,43 @@ impl<T: WritableFile> WritableFileWriter<T> {
             }
         }
 
+        // Flush only when buffered I/O
         if (!self.writable_file_.use_direct_io()
             && (self.buf_.get_capacity() - self.buf_.get_current_size() < left))
-        {}
+        {
+            let s: state;
+            if (self.buf_.get_current_size() > 0) {
+                s = self.flush();
+                if !s.isOk() {
+                    return s;
+                }
+            }
+            assert!(self.buf_.get_current_size() == 0);
+        }
 
+        // We never write directly to disk with direct I/O on.
+        // or we simply use it for its original purpose to accumulate many small
+        // chunks
+        if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
+            while (left > 0) {
+                let appended = self.buf_.append(slice[src..].to_vec(), left);
+                left -= appended;
+                src += appended;
+                if (left > 0) {
+                    s = self.flush();
+                    if (!s.isOk()) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            assert!(self.buf_.get_current_size() == 0);
+            s = self.write_buffered(slice[src..].to_vec(), left);
+        }
+
+        if (s.isOk()) {
+            self.filesize_ = mem::size_of_val(&slice.as_slice());
+        }
         state::ok()
     }
 
@@ -102,5 +139,33 @@ impl<T: WritableFile> WritableFileWriter<T> {
 
     fn range_sync(&mut self, offset: i64, nbytes: i64) -> state {
         return self.range_sync(offset, nbytes);
+    }
+
+    fn write_buffered(&mut self, data: Vec<u8>, size: usize) -> state {
+        let mut s: state;
+        assert!(self.writable_file_.use_direct_io());
+        let mut src = 0;
+        let mut left = size;
+
+        while (left > 0) {
+            let mut allowed;
+
+            // if (rate_limiter_ != nullptr) {
+            // allowed = rate_limiter_->RequestToken(
+            // left, 0 /* alignment */, writable_file_->GetIOPriority(), stats_,
+            // RateLimiter::OpType::kWrite);
+            // } else {
+            allowed = left;
+            // }
+            s = self.writable_file_.append(data[src..src + left].to_vec());
+            if (!s.isOk()) {
+                return s;
+            }
+
+            left -= allowed;
+            src += allowed;
+        }
+        self.buf_.size(0);
+        state::ok()
     }
 }

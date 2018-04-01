@@ -84,8 +84,7 @@ impl AlignedBuffer {
         self.buf_ = new_buf;
     }
 
-    fn append(&mut self, src: Vec<u8>) -> usize {
-        let append_size = src.len();
+    pub fn append(&mut self, src: Vec<u8>, append_size: usize) -> usize {
         assert!(self.capacity_ > self.cursize_);
         let buffer_remaining = self.capacity_ - self.cursize_;
         let to_copy = min(append_size, buffer_remaining);
@@ -161,7 +160,7 @@ impl AlignedBuffer {
         self.cursize_ = tail_size;
     }
 
-    fn size(&mut self, cursize: usize) {
+    pub fn size(&mut self, cursize: usize) {
         self.cursize_ = cursize;
     }
 }
@@ -210,7 +209,10 @@ fn test_aligned_buffer() {
     let mut buf: AlignedBuffer = Default::default();
     buf.alignment(4);
     buf.allocate_new_buffer(16, false);
-    let appended = buf.append(String::from("abc").into_bytes());
+    let appended = buf.append(
+        String::from("abc").into_bytes(),
+        String::from("abc").into_bytes().len(),
+    );
     let result = buf.read(0, appended);
     assert_eq!(result.len(), 3);
     unsafe {
