@@ -82,6 +82,7 @@ pub trait WritableFile: Sized {
         return state::ok();
     }
 
+    #[cfg(not(target_os = "linux"))]
     fn allocate(&self, offset: i64, len: i64) -> state {
         return state::ok();
     }
