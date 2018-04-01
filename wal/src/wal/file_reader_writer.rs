@@ -62,8 +62,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         // Flush only when buffered I/O
-        if (!self.writable_file_.use_direct_io()
-            && (self.buf_.get_capacity() - self.buf_.get_current_size() < left))
+        if !self.writable_file_.use_direct_io()
+            && (self.buf_.get_capacity() - self.buf_.get_current_size() < left)
         {
             let s: state;
             if (self.buf_.get_current_size() > 0) {
