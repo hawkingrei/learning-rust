@@ -1,4 +1,4 @@
-struct EnvOptions {
+pub struct EnvOptions {
     // If true, then use mmap to read data
     use_mmap_reads: bool,
 
@@ -25,7 +25,9 @@ struct EnvOptions {
     // WAL writes
     fallocate_with_keep_size: bool,
 
-    writable_file_max_buffer_size: usize,
+    pub writable_file_max_buffer_size: usize,
+
+    pub bytes_per_sync: usize,
 }
 
 impl Default for EnvOptions {
@@ -40,6 +42,7 @@ impl Default for EnvOptions {
             fallocate_with_keep_size: true,
 
             writable_file_max_buffer_size: 1024 * 1024,
+            bytes_per_sync: 0,
         }
     }
 }

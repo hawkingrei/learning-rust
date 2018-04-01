@@ -2,6 +2,7 @@ use std::cmp::min;
 use std::mem;
 use wal::WritableFile;
 use wal::aligned_buffer::AlignedBuffer;
+use wal::env::EnvOptions;
 use wal::io;
 use wal::state;
 
@@ -20,6 +21,18 @@ pub struct WritableFileWriter<T: WritableFile> {
 }
 
 impl<T: WritableFile> WritableFileWriter<T> {
+    pub fn new(writable_file: T, options: EnvOptions) -> WritableFileWriter<T> {
+        WritableFileWriter {
+            writable_file_: writable_file,
+            filesize_: 0,
+            max_buffer_size_: options.writable_file_max_buffer_size,
+            pending_sync_: false,
+            bytes_per_sync_: options.bytes_per_sync,
+            buf_: Default::default(),
+            last_sync_size_: 0,
+        }
+    }
+
     pub fn append(&mut self, slice: Vec<u8>) -> state {
         let mut s: state = state::ok();
         let mut src = 0;
