@@ -50,9 +50,9 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
-                if (desired_capacity - self.buf_.get_current_size() >= left
+                if desired_capacity - self.buf_.get_current_size() >= left
                     || (self.writable_file_.use_direct_io()
-                        && desired_capacity == self.max_buffer_size_))
+                        && desired_capacity == self.max_buffer_size_)
                 {
                     self.buf_.allocate_new_buffer(desired_capacity, true);
                     break;
@@ -151,7 +151,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
     }
 
     fn range_sync(&mut self, offset: i64, nbytes: i64) -> state {
-        return self.range_sync(offset, nbytes);
+        return self.writable_file_.range_sync(offset, nbytes);
     }
 
     fn write_buffered(&mut self, data: Vec<u8>, size: usize) -> state {
