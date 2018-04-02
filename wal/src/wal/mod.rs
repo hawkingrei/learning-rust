@@ -9,6 +9,7 @@ use libc;
 use std::mem;
 use std::str;
 use wal;
+use wal::env::EnvOptions;
 use wal::file_reader_writer::WritableFileWriter;
 use wal::io::PosixWritableFile;
 
@@ -118,6 +119,10 @@ fn test_state() {
 #[test]
 fn test_wal() {
     let mut fd = PosixWritableFile::new("test".to_string(), true, 1024 * 1024);
-    let mut writer = WritableFileWriter::new(fd, Default::default());
-    writer.append(vec![1, 2, 3, 4, 5]);
+    let mut op: EnvOptions = EnvOptions::default();
+    op.writable_file_max_buffer_size = 100;
+    let mut writer = WritableFileWriter::new(fd, op);
+    writer.append(vec![
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26
+    ]);
 }

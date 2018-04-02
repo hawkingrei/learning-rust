@@ -1,21 +1,21 @@
 pub struct EnvOptions {
     // If true, then use mmap to read data
-    use_mmap_reads: bool,
+    pub use_mmap_reads: bool,
 
     // If true, then use mmap to write data
-    use_mmap_writes: bool,
+    pub use_mmap_writes: bool,
 
     // If true, then use O_DIRECT for reading data
-    use_direct_reads: bool,
+    pub use_direct_reads: bool,
 
     // If true, then use O_DIRECT for writing data
-    use_direct_writes: bool,
+    pub use_direct_writes: bool,
 
     // If false, fallocate() calls are bypassed
-    allow_fallocate: bool,
+    pub allow_fallocate: bool,
 
     // If true, set the FD_CLOEXEC on open fd.
-    set_fd_cloexec: bool,
+    pub set_fd_cloexec: bool,
 
     // If true, we will preallocate the file with FALLOC_FL_KEEP_SIZE flag, which
     // means that file size won't change as part of preallocation.
@@ -23,7 +23,7 @@ pub struct EnvOptions {
     // improve the performance in workloads where you sync the data on every
     // write. By default, we set it to true for MANIFEST writes and false for
     // WAL writes
-    fallocate_with_keep_size: bool,
+    pub fallocate_with_keep_size: bool,
 
     pub writable_file_max_buffer_size: usize,
 
