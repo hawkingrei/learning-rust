@@ -46,7 +46,9 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             println!("1");
             let mut cap = self.buf_.get_capacity();
+            println!("cap {} max_buffer_size_ {}",cap,self.max_buffer_size_);
             while (cap < self.max_buffer_size_) {
+                println!("cap {} max_buffer_size_ {}",cap,self.max_buffer_size_);
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
