@@ -22,13 +22,16 @@ pub struct WritableFileWriter<T: WritableFile> {
 
 impl<T: WritableFile> WritableFileWriter<T> {
     pub fn new(writable_file: T, options: EnvOptions) -> WritableFileWriter<T> {
+        let mut buf :AlignedBuffer = Default::default();
+        buf.alignment(4);
+        buf.allocate_new_buffer(65536,false);
         WritableFileWriter {
             writable_file_: writable_file,
             filesize_: 0,
             max_buffer_size_: options.writable_file_max_buffer_size,
             pending_sync_: false,
             bytes_per_sync_: options.bytes_per_sync,
-            buf_: Default::default(),
+            buf_: buf,
             last_sync_size_: 0,
         }
     }
@@ -48,11 +51,11 @@ impl<T: WritableFile> WritableFileWriter<T> {
             let mut cap = self.buf_.get_capacity();
             println!("cap {} max_buffer_size_ {}",cap,self.max_buffer_size_);
             while (cap < self.max_buffer_size_) {
-                println!("cap {} max_buffer_size_ {}",cap,self.max_buffer_size_);
+                println!("cap {} max_buffer_size_ {} current_size() {}",cap,self.max_buffer_size_,self.buf_.get_current_size());
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
-                if desired_capacity - self.buf_.get_current_size() >= left
+                if desired_capacity - self.buf_.get_current_size() > left
                     || (self.writable_file_.use_direct_io()
                         && desired_capacity == self.max_buffer_size_)
                 {

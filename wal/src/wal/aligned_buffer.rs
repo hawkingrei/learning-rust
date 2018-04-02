@@ -52,7 +52,7 @@ impl AlignedBuffer {
         return self.cursize_;
     }
 
-    fn alignment(&mut self, alignment: usize) {
+    pub fn alignment(&mut self, alignment: usize) {
         self.alignment_ = alignment;
     }
 
