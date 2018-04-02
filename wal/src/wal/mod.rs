@@ -120,9 +120,11 @@ fn test_state() {
 fn test_wal() {
     let mut fd = PosixWritableFile::new("test".to_string(), true, 1024 * 1024);
     let mut op: EnvOptions = EnvOptions::default();
-    op.writable_file_max_buffer_size = 100;
+    op.writable_file_max_buffer_size = 50;
     let mut writer = WritableFileWriter::new(fd, op);
-    writer.append(vec![
+    let input = vec![
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26
-    ]);
+    ];
+    println!("input len {}",input.len());
+    writer.append(input);
 }

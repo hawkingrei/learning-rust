@@ -44,6 +44,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
             self.writable_file_.prepare_write(fsize, left);
         }
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
+            println!("1");
             let mut cap = self.buf_.get_capacity();
             while (cap < self.max_buffer_size_) {
                 // See whether the next available size is large enough.
@@ -76,7 +77,9 @@ impl<T: WritableFile> WritableFileWriter<T> {
         // We never write directly to disk with direct I/O on.
         // or we simply use it for its original purpose to accumulate many small
         // chunks
-        if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
+        println!("cap {} left {}",self.buf_.get_capacity(),left);
+        if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() > left) {
+            println!("3");
             while (left > 0) {
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
                 left -= appended;
@@ -157,7 +160,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut src = 0;
         let mut left = size;
-
+        println!("write buffered {}",left);
         while (left > 0) {
             let mut allowed;
 
