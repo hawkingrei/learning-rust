@@ -79,6 +79,7 @@ pub trait WritableFile: Sized {
     fn close(&self) -> state;
     fn flush(&self) -> state;
     fn fcntl(&self) -> bool;
+    fn truncate(&mut self, size: usize) -> state;
     #[cfg(target_os = "linux")]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state;
 

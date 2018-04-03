@@ -206,6 +206,17 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         s = self.flush();
+
+        let mut interim: state;
+        if (self.writable_file_.use_direct_io()) {
+            interim = self.writable_file_.truncate(self.filesize_);
+            if (interim.isOk()) {
+                interim = self.writable_file_.sync();
+            }
+            if (!interim.isOk() && s.isOk()) {
+                s = interim;
+            }
+        }
         s
     }
 }
