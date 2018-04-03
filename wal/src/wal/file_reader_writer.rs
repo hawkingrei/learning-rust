@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::mem;
+use wal::Code;
 use wal::WritableFile;
 use wal::aligned_buffer::AlignedBuffer;
 use wal::env::EnvOptions;
@@ -22,9 +23,9 @@ pub struct WritableFileWriter<T: WritableFile> {
 
 impl<T: WritableFile> WritableFileWriter<T> {
     pub fn new(writable_file: T, options: EnvOptions) -> WritableFileWriter<T> {
-        let mut buf :AlignedBuffer = Default::default();
+        let mut buf: AlignedBuffer = Default::default();
         buf.alignment(4);
-        buf.allocate_new_buffer(65536,false);
+        buf.allocate_new_buffer(65536, false);
         WritableFileWriter {
             writable_file_: writable_file,
             filesize_: 0,
@@ -49,9 +50,14 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             println!("1");
             let mut cap = self.buf_.get_capacity();
-            println!("cap {} max_buffer_size_ {}",cap,self.max_buffer_size_);
+            println!("cap {} max_buffer_size_ {}", cap, self.max_buffer_size_);
             while (cap < self.max_buffer_size_) {
-                println!("cap {} max_buffer_size_ {} current_size() {}",cap,self.max_buffer_size_,self.buf_.get_current_size());
+                println!(
+                    "cap {} max_buffer_size_ {} current_size() {}",
+                    cap,
+                    self.max_buffer_size_,
+                    self.buf_.get_current_size()
+                );
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
@@ -166,7 +172,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut src = 0;
         let mut left = size;
-        println!("write buffered {}",left);
+        println!("write buffered {}", left);
         while (left > 0) {
             let mut allowed;
 
@@ -187,5 +193,39 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
         self.buf_.size(0);
         state::ok()
+    }
+
+    fn close(&mut self) -> state {
+        let mut s: state;
+        if (!self.writable_file_.fcntl()) {
+            s = state::new(
+                Code::kIOError,
+                "writeable_file_ has closed".to_string(),
+                "".to_string(),
+            );
+            return s;
+        }
+
+        s = self.flush();
+
+        let mut interim: state;
+        if (self.writable_file_.use_direct_io()) {
+            interim = self.writable_file_.truncate(self.filesize_);
+            if (interim.isOk()) {
+                interim = self.writable_file_.sync();
+            }
+            if (!interim.isOk() && s.isOk()) {
+                s = interim;
+            }
+        }
+        s
+    }
+}
+
+impl<T: WritableFile> Drop for WritableFileWriter<T> {
+    fn drop(&mut self) {
+        unsafe {
+            self.close();
+        }
     }
 }

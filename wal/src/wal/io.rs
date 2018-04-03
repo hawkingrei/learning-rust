@@ -146,6 +146,27 @@ impl WritableFile for PosixWritableFile {
     fn use_direct_io(&self) -> bool {
         return self.use_direct_io_;
     }
+
+    fn fcntl(&self) -> bool {
+        return unsafe { libc::fcntl(self.fd_, libc::F_GETFL) != -1 };
+    }
+
+    fn truncate(&mut self, size: usize) -> state {
+        let state: i32;
+        unsafe {
+            state = libc::ftruncate(self.fd_, size as i64);
+        }
+        if state < 0 {
+            return state::new(
+                Code::kIOError,
+                "cannot truncate".to_string(),
+                "".to_string(),
+            );
+        } else {
+            self.filesize_ = size;
+        }
+        return state::ok();
+    }
 }
 
 #[test]
@@ -153,5 +174,4 @@ fn test_append() {
     let mut p = PosixWritableFile::new(String::from("hello"), true, 20);
     p.append(String::from("hello").into_bytes());
     p.sync();
-    p.close();
 }

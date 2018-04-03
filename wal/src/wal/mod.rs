@@ -78,6 +78,8 @@ pub trait WritableFile: Sized {
     fn sync(&self) -> state;
     fn close(&self) -> state;
     fn flush(&self) -> state;
+    fn fcntl(&self) -> bool;
+    fn truncate(&mut self, size: usize) -> state;
     #[cfg(target_os = "linux")]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state;
 
@@ -125,6 +127,6 @@ fn test_wal() {
     let input = vec![
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26
     ];
-    println!("input len {}",input.len());
+    println!("input len {}", input.len());
     writer.append(input);
 }
