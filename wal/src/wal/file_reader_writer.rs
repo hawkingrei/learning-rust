@@ -55,7 +55,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
-                if desired_capacity - self.buf_.get_current_size() > left
+                if desired_capacity - self.buf_.get_current_size() >= left
                     || (self.writable_file_.use_direct_io()
                         && desired_capacity == self.max_buffer_size_)
                 {
@@ -83,9 +83,10 @@ impl<T: WritableFile> WritableFileWriter<T> {
         // or we simply use it for its original purpose to accumulate many small
         // chunks
         println!("cap {} left {}",self.buf_.get_capacity(),left);
-        if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() > left) {
+        if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
             println!("3");
             while (left > 0) {
+                println!("f left {}",left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
                 left -= appended;
                 src += appended;
