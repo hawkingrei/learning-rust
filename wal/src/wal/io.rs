@@ -146,6 +146,10 @@ impl WritableFile for PosixWritableFile {
     fn use_direct_io(&self) -> bool {
         return self.use_direct_io_;
     }
+
+    fn fcntl(&self) -> bool {
+        return unsafe { libc::fcntl(self.fd_, libc::F_GETFL) != -1 };
+    }
 }
 
 #[test]
@@ -153,5 +157,4 @@ fn test_append() {
     let mut p = PosixWritableFile::new(String::from("hello"), true, 20);
     p.append(String::from("hello").into_bytes());
     p.sync();
-    p.close();
 }
