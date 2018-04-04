@@ -3,6 +3,7 @@ use std::mem;
 use wal::Code;
 use wal::WritableFile;
 use wal::aligned_buffer::AlignedBuffer;
+use wal::aligned_buffer::truncate_to_page_boundary;
 use wal::env::EnvOptions;
 use wal::io;
 use wal::state;
@@ -16,6 +17,8 @@ pub struct WritableFileWriter<T: WritableFile> {
     buf_: AlignedBuffer,
     bytes_per_sync_: usize,
     last_sync_size_: usize,
+    #[cfg(not(feature = "CIBO_LITE"))]
+    next_write_offset_: usize,
     // uint64_t                bytes_per_sync_;
     // RateLimiter*            rate_limiter_;
     // Statistics* stats_;
@@ -34,6 +37,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
             bytes_per_sync_: options.bytes_per_sync,
             buf_: buf,
             last_sync_size_: 0,
+            #[cfg(not(feature = "CIBO_LITE"))]
+            next_write_offset_: 0,
         }
     }
 
@@ -88,10 +93,11 @@ impl<T: WritableFile> WritableFileWriter<T> {
         // We never write directly to disk with direct I/O on.
         // or we simply use it for its original purpose to accumulate many small
         // chunks
-        println!("cap {} left {}",self.buf_.get_capacity(),left);
+        println!("cap {} left {}", self.buf_.get_capacity(), left);
         if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
             println!("3");
             while (left > 0) {
+                println!("f left {}", left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
                 println!("f left {} {:?} {:?}",left,slice[src..].to_vec(),self.buf_);
                 left -= appended;
@@ -121,7 +127,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
     pub fn flush(&mut self) -> state {
         let mut s: state;
         if (self.buf_.get_current_size() > 0) {
-            if cfg!(feature = "CIBO_LITE") {}
+            if cfg!(not(feature = "CIBO_LITE")) {}
         } else {
             println!("write buffered")
             //self.write_buffered(self.buf_.BufferStart(),self.buf_.)
@@ -219,6 +225,22 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 s = interim;
             }
         }
+        s
+    }
+
+    #[cfg(not(feature = "CIBO_LITE"))]
+    fn WriteDirect(&mut self) -> state {
+        assert!(self.writable_file_.use_direct_io());
+        let mut s: state = state::ok();
+        let alignment: usize = self.buf_.get_alignment();
+        let file_advance = truncate_to_page_boundary(alignment, self.buf_.get_current_size());
+        let leftover_tail = self.buf_.get_current_size() - file_advance;
+        self.buf_.pad_to_aligment_with(0);
+
+        let mut src = self.buf_.buffer_start();
+        let mut write_offset = self.next_write_offset_;
+        let mut left = self.buf_.get_current_size();
+        //while (left > 0) {}
         s
     }
 }
