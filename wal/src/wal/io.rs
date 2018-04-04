@@ -189,7 +189,7 @@ impl WritableFile for PosixWritableFile {
         self.logical_sector_size_
     }
 
-    fn positioned_append(&mut self, data: Vec<u8>, offset: usize) -> state {
+    fn positioned_append(&mut self,mut data: Vec<u8>, mut offset: usize) -> state {
         if (self.use_direct_io()) {
             assert!(IsSectorAligned(offset, get_logical_buffer_size()));
             assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
@@ -199,8 +199,39 @@ impl WritableFile for PosixWritableFile {
             ));
         }
         assert!(offset <= usize::MAX);
-        let left: usize = data.len();
+        let mut src = data.as_mut_ptr();
+        let mut left = data.len();
 
+        let mut done;
+        while (left!=0){unsafe{
+           done =  libc::pwrite(self.fd_,src as *const libc::c_void,left,offset as i64);
+           }
+           if done < 1 {
+               
+               if cfg!(any(target_os = "freebsd",
+                 target_os = "ios",
+                 target_os = "macos"))  {
+                    unsafe{
+                        if  (*libc::__error()) as i32 == libc::EINTR {
+                            continue;
+                        }
+                    }
+                }
+    
+                //if cfg!(any(target_os = "linux", target_os = "android")) {
+                //    if  (*libc::__errno_location()) as i32 == libc::EINTR {
+                //        continue;
+                //    }
+                //}
+    
+               return state::new(Code::kIOError, format!("While pwrite to file at offset {}",offset.to_string()),"".to_string());
+               //IOError("While pwrite to file at offset " + ToString(offset),filename_, errno);
+           }
+            left -= done as usize;
+            offset += done as usize;
+            unsafe {            src = src.offset(done);
+}
+        }
         self.filesize_ = offset;
         return state::ok();
     }
