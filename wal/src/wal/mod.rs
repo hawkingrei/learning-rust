@@ -13,6 +13,8 @@ use wal::env::EnvOptions;
 use wal::file_reader_writer::WritableFileWriter;
 use wal::io::PosixWritableFile;
 
+const k_default_page_size: usize = 4 * 1024;
+
 pub fn EncodeFixed32(value: u32) -> [u8; 4] {
     if cfg!(target_endian = "little") {
         unsafe { mem::transmute(value.to_le()) }
@@ -80,6 +82,7 @@ pub trait WritableFile: Sized {
     fn flush(&self) -> state;
     fn fcntl(&self) -> bool;
     fn truncate(&mut self, size: usize) -> state;
+    fn get_required_buffer_alignment(&self) -> usize;
     #[cfg(target_os = "linux")]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state;
 

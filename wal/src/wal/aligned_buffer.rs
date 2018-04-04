@@ -5,7 +5,7 @@ use std::mem;
 use std::mem::align_of;
 use std::{ptr, slice};
 #[inline]
-fn truncate_to_page_boundary(page_size: usize, s: usize) -> usize {
+pub fn truncate_to_page_boundary(page_size: usize, s: usize) -> usize {
     assert!((s % page_size) == 0);
     s - (s & (page_size - 1))
 }
@@ -40,7 +40,7 @@ impl Default for AlignedBuffer {
 }
 
 impl AlignedBuffer {
-    fn get_alignment(&self) -> usize {
+    pub fn get_alignment(&self) -> usize {
         return self.alignment_;
     }
 
@@ -119,7 +119,7 @@ impl AlignedBuffer {
         result
     }
 
-    fn pad_to_aligment_with(&mut self, padding: u8) {
+    pub fn pad_to_aligment_with(&mut self, padding: u8) {
         let total_size = round_up(self.cursize_, self.alignment_);
         let pad_size = total_size - self.cursize_;
         if pad_size > 0 {
@@ -162,6 +162,10 @@ impl AlignedBuffer {
 
     pub fn size(&mut self, cursize: usize) {
         self.cursize_ = cursize;
+    }
+
+    pub fn buffer_start(&self) -> *mut u8 {
+        return self.bufstart_;
     }
 }
 
@@ -213,9 +217,9 @@ fn test_aligned_buffer() {
         String::from("abc").into_bytes(),
         String::from("abc").into_bytes().len(),
     );
-    let result = buf.read(0, appended);
-    assert_eq!(result.len(), 3);
+    let result = buf.read(1, appended - 1);
+    assert_eq!(result.len(), 2);
     unsafe {
-        assert_eq!(String::from_utf8_unchecked(result), String::from("abc"));
+        assert_eq!(String::from_utf8_unchecked(result), String::from("bc"));
     }
 }

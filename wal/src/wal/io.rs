@@ -4,6 +4,8 @@ use std::mem;
 use std::os::raw::c_char;
 use wal::Code;
 use wal::WritableFile;
+use wal::io;
+use wal::k_default_page_size;
 use wal::state;
 #[derive(Debug)]
 pub struct PosixWritableFile {
@@ -13,7 +15,7 @@ pub struct PosixWritableFile {
     preallocation_block_size_: usize,
     last_preallocated_block_: usize,
     filesize_: usize,
-    //logical_sector_size_: u64,
+    logical_sector_size_: usize,
 }
 
 #[cfg(target_os = "macos")]
@@ -25,6 +27,16 @@ fn get_flag() -> i32 {
           target_os = "linux", target_os = "netbsd"))]
 fn get_flag() -> i32 {
     libc::O_CREAT | libc::O_DIRECT
+}
+
+#[cfg(not(target_os = "linux"))]
+fn get_logical_buffer_size() -> usize {
+    if cfg!(not(target_os = "linux")) {
+        return k_default_page_size;
+    } else {
+        return k_default_page_size;
+        //Todo: support linux
+    }
 }
 
 impl WritableFile for PosixWritableFile {
@@ -49,6 +61,7 @@ impl WritableFile for PosixWritableFile {
             preallocation_block_size_: preallocation_block_size,
             last_preallocated_block_: 0,
             filesize_: 0,
+            logical_sector_size_: io::get_logical_buffer_size(),
         }
     }
 
@@ -166,6 +179,10 @@ impl WritableFile for PosixWritableFile {
             self.filesize_ = size;
         }
         return state::ok();
+    }
+
+    fn get_required_buffer_alignment(&self) -> usize {
+        self.logical_sector_size_
     }
 }
 
