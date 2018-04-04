@@ -83,6 +83,7 @@ pub trait WritableFile: Sized {
     fn fcntl(&self) -> bool;
     fn truncate(&mut self, size: usize) -> state;
     fn get_required_buffer_alignment(&self) -> usize;
+
     #[cfg(target_os = "linux")]
     fn range_sync(&self, offset: i64, nbytes: i64) -> state;
 
@@ -97,7 +98,7 @@ pub trait WritableFile: Sized {
 
     fn prepare_write(&mut self, offset: usize, len: usize) {}
 
-    fn positioned_append(data: Vec<u8>, offset: usize) -> state {
+    fn positioned_append(&self, data: Vec<u8>, offset: usize) -> state {
         return state::not_supported();
     }
 

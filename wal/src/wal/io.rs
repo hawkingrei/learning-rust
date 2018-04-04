@@ -2,6 +2,7 @@ use libc;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
+use std::usize;
 use wal::Code;
 use wal::WritableFile;
 use wal::io;
@@ -37,6 +38,10 @@ fn get_logical_buffer_size() -> usize {
         return k_default_page_size;
         //Todo: support linux
     }
+}
+
+fn IsSectorAligned(off: usize, sector_size: usize) -> bool {
+    return off % sector_size == 0;
 }
 
 impl WritableFile for PosixWritableFile {
@@ -183,6 +188,22 @@ impl WritableFile for PosixWritableFile {
 
     fn get_required_buffer_alignment(&self) -> usize {
         self.logical_sector_size_
+    }
+
+    fn positioned_append(&self, data: Vec<u8>, offset: usize) -> state {
+        if (self.use_direct_io()) {
+            assert!(IsSectorAligned(offset, get_logical_buffer_size()));
+            assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
+            assert!(IsSectorAligned(
+                data.as_ptr() as usize,
+                get_logical_buffer_size()
+            ));
+        }
+        assert!(offset <= usize::MAX);
+        let left: usize = data.len();
+
+        filesize_ = offset;
+        return state::ok();
     }
 }
 
