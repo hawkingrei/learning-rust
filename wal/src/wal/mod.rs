@@ -98,7 +98,7 @@ pub trait WritableFile: Sized {
 
     fn prepare_write(&mut self, offset: usize, len: usize) {}
 
-    fn positioned_append(&self, data: Vec<u8>, offset: usize) -> state {
+    fn positioned_append(&mut self, data: Vec<u8>, offset: usize) -> state {
         return state::not_supported();
     }
 

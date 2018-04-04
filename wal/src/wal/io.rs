@@ -66,7 +66,7 @@ impl WritableFile for PosixWritableFile {
             preallocation_block_size_: preallocation_block_size,
             last_preallocated_block_: 0,
             filesize_: 0,
-            logical_sector_size_: io::get_logical_buffer_size(),
+            logical_sector_size_: get_logical_buffer_size(),
         }
     }
 
@@ -190,7 +190,7 @@ impl WritableFile for PosixWritableFile {
         self.logical_sector_size_
     }
 
-    fn positioned_append(&self, data: Vec<u8>, offset: usize) -> state {
+    fn positioned_append(&mut self, data: Vec<u8>, offset: usize) -> state {
         if (self.use_direct_io()) {
             assert!(IsSectorAligned(offset, get_logical_buffer_size()));
             assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
@@ -202,7 +202,7 @@ impl WritableFile for PosixWritableFile {
         assert!(offset <= usize::MAX);
         let left: usize = data.len();
 
-        filesize_ = offset;
+        self.filesize_ = offset;
         return state::ok();
     }
 }
