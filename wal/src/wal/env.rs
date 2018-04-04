@@ -36,7 +36,7 @@ impl Default for EnvOptions {
             use_mmap_reads: false,
             use_mmap_writes: true,
             use_direct_reads: false,
-            use_direct_writes: false,
+            use_direct_writes: true,
             allow_fallocate: true,
             set_fd_cloexec: true,
             fallocate_with_keep_size: true,

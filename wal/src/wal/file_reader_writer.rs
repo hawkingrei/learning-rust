@@ -41,7 +41,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut s: state = state::ok();
         let mut src = 0;
         let mut ptr = slice.as_slice();
-        let mut left = mem::size_of_val(&slice.as_slice());
+        let mut left = slice.as_slice().len();
         self.pending_sync_ = true;
         {
             let fsize = self.get_file_size();
@@ -50,7 +50,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             println!("1");
             let mut cap = self.buf_.get_capacity();
-            println!("cap {} max_buffer_size_ {}", cap, self.max_buffer_size_);
+            println!("cap {} max_buffer_size_ {} left {} ptr {:?}", cap, self.max_buffer_size_,left,ptr);
             while (cap < self.max_buffer_size_) {
                 println!(
                     "cap {} max_buffer_size_ {} current_size() {}",
@@ -92,8 +92,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
             println!("3");
             while (left > 0) {
-                println!("f left {}",left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
+                println!("f left {} {:?} {:?}",left,slice[src..].to_vec(),self.buf_);
                 left -= appended;
                 src += appended;
                 if (left > 0) {
@@ -109,7 +109,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         if (s.isOk()) {
-            self.filesize_ = mem::size_of_val(&slice.as_slice());
+            self.filesize_ = slice.as_slice().len();
         }
         state::ok()
     }
@@ -123,7 +123,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_current_size() > 0) {
             if cfg!(feature = "CIBO_LITE") {}
         } else {
-
+            println!("write buffered")
+            //self.write_buffered(self.buf_.BufferStart(),self.buf_.)
         }
         s = self.writable_file_.flush();
         if (!s.isOk()) {
@@ -172,7 +173,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut src = 0;
         let mut left = size;
-        println!("write buffered {}", left);
+        println!("write buffered {} {:?}", left,data);
         while (left > 0) {
             let mut allowed;
 
@@ -207,7 +208,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         s = self.flush();
-
+        println!("FIILESIZE {}",self.filesize_);
         let mut interim: state;
         if (self.writable_file_.use_direct_io()) {
             interim = self.writable_file_.truncate(self.filesize_);
