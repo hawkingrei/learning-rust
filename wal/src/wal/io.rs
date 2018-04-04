@@ -30,7 +30,6 @@ fn get_flag() -> i32 {
     libc::O_CREAT | libc::O_DIRECT
 }
 
-#[cfg(not(target_os = "linux"))]
 fn get_logical_buffer_size() -> usize {
     if cfg!(not(target_os = "linux")) {
         return k_default_page_size;
