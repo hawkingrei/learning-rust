@@ -56,7 +56,10 @@ impl<T: WritableFile> WritableFileWriter<T> {
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
             println!("1");
             let mut cap = self.buf_.get_capacity();
-            println!("cap {} max_buffer_size_ {} left {} ptr {:?}", cap, self.max_buffer_size_,left,ptr);
+            println!(
+                "cap {} max_buffer_size_ {} left {} ptr {:?}",
+                cap, self.max_buffer_size_, left, ptr
+            );
             while (cap < self.max_buffer_size_) {
                 println!(
                     "cap {} max_buffer_size_ {} current_size() {}",
@@ -100,7 +103,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
             while (left > 0) {
                 println!("f left {}", left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
-                println!("f left {} {:?} ",left,slice[src..].to_vec());
+                println!("f left {} {:?} ", left, slice[src..].to_vec());
                 left -= appended;
                 src += appended;
                 if (left > 0) {
@@ -182,7 +185,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut src = 0;
         let mut left = size;
-        println!("write buffered {} {:?}", left,data);
+        println!("write buffered {} {:?}", left, data);
         while (left > 0) {
             let mut allowed;
 
@@ -217,7 +220,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         s = self.flush();
-        println!("FIILESIZE {}",self.filesize_);
+        println!("FIILESIZE {}", self.filesize_);
         let mut interim: state;
         if (self.writable_file_.use_direct_io()) {
             interim = self.writable_file_.truncate(self.filesize_);
@@ -247,30 +250,26 @@ impl<T: WritableFile> WritableFileWriter<T> {
             //rate_limiter
             let mut size = left;
 
-            
-            let  mut write_context  = vec![0; size];
+            let mut write_context = vec![0; size];
             unsafe {
-                ptr::copy_nonoverlapping(
-                    src,
-                    write_context.as_mut_ptr(),
-                    size,
-                );
+                ptr::copy_nonoverlapping(src, write_context.as_mut_ptr(), size);
             }
 
-            s = self.writable_file_.positioned_append(write_context,write_offset);
+            s = self.writable_file_
+                .positioned_append(write_context, write_offset);
             if (!s.isOk()) {
-                self.buf_.size(file_advance+leftover_tail);
-                return s
+                self.buf_.size(file_advance + leftover_tail);
+                return s;
             }
             left -= size;
             unsafe {
                 src = src.offset(size as isize);
             }
-            write_offset +=size;
+            write_offset += size;
             assert!((self.next_write_offset_ % alignment) == 0);
         }
-        
-        if (s.isOk()){
+
+        if (s.isOk()) {
             self.buf_.refit_tail(file_advance, leftover_tail);
             self.next_write_offset_ += file_advance;
         }

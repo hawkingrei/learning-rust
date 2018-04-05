@@ -189,7 +189,7 @@ impl WritableFile for PosixWritableFile {
         self.logical_sector_size_
     }
 
-    fn positioned_append(&mut self,mut data: Vec<u8>, mut offset: usize) -> state {
+    fn positioned_append(&mut self, mut data: Vec<u8>, mut offset: usize) -> state {
         if (self.use_direct_io()) {
             assert!(IsSectorAligned(offset, get_logical_buffer_size()));
             assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
@@ -203,33 +203,39 @@ impl WritableFile for PosixWritableFile {
         let mut left = data.len();
 
         let mut done;
-        while (left!=0){unsafe{
-           done =  libc::pwrite(self.fd_,src as *const libc::c_void,left,offset as i64);
-           }
-           if done < 1 {
-               
-               if cfg!(any(target_os = "freebsd",
-                 target_os = "ios",
-                 target_os = "macos"))  {
-                    unsafe{
-                        if  (*libc::__error()) as i32 == libc::EINTR {
+        while (left != 0) {
+            unsafe {
+                done = libc::pwrite(self.fd_, src as *const libc::c_void, left, offset as i64);
+            }
+            if done < 1 {
+                if cfg!(any(
+                    target_os = "freebsd",
+                    target_os = "ios",
+                    target_os = "macos"
+                )) {
+                    unsafe {
+                        if (*libc::__error()) as i32 == libc::EINTR {
                             continue;
                         }
                     }
                 }
-    
+
                 //if cfg!(any(target_os = "linux", target_os = "android")) {
                 //    if  (*libc::__errno_location()) as i32 == libc::EINTR {
                 //        continue;
                 //    }
                 //}
-    
-               return state::new(Code::kIOError, format!("While pwrite to file at offset {}",offset.to_string()),"".to_string());
-               //IOError("While pwrite to file at offset " + ToString(offset),filename_, errno);
-           }
+
+                return state::new(
+                    Code::kIOError,
+                    format!("While pwrite to file at offset {}", offset.to_string()),
+                    "".to_string(),
+                );
+                //IOError("While pwrite to file at offset " + ToString(offset),filename_, errno);
+            }
             left -= done as usize;
             offset += done as usize;
-            unsafe {            
+            unsafe {
                 src = src.offset(done);
             }
         }

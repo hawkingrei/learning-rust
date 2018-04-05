@@ -48,7 +48,7 @@ struct state {
 
 impl state {
     fn new(code: Code, msg1: String, msg2: String) -> state {
-        let msg =format!("{}: {}",msg1,msg2);
+        let msg = format!("{}: {}", msg1, msg2);
         let size = mem::size_of_val(&msg);
         let mut state: Vec<u8> = Vec::with_capacity(size + 5);
         state.extend(EncodeFixed32(size as u32).iter().cloned());
@@ -131,6 +131,6 @@ fn test_wal() {
     let input = vec![
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26
     ];
-    println!("input len {} {:?}", input.len(),input);
+    println!("input len {} {:?}", input.len(), input);
     writer.append(input);
 }

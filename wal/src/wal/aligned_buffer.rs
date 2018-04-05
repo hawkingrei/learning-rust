@@ -5,9 +5,10 @@ use std::mem;
 use std::mem::align_of;
 use std::{ptr, slice};
 #[inline]
-pub fn truncate_to_page_boundary(page_size: usize, s: usize) -> usize {
-    assert!((s % page_size) == 0);
-    s - (s & (page_size - 1))
+pub fn truncate_to_page_boundary(page_size: usize, mut s: usize) -> usize {
+    let result = s - (s & (page_size - 1));
+    assert!((result % page_size) == 0);
+    result
 }
 
 #[inline]
@@ -230,13 +231,24 @@ fn test_aligned_buffer2() {
     buf.alignment(4);
     buf.allocate_new_buffer(100, false);
     let appended = buf.append(
-        
-        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26],
-        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26].len(),
+        vec![
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
+            26,
+        ],
+        vec![
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
+            26,
+        ].len(),
     );
     let result = buf.read(1, appended - 1);
     assert_eq!(result.len(), 24);
     unsafe {
-        assert_eq!(result, vec![ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26]);
+        assert_eq!(
+            result,
+            vec![
+                2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
+                26,
+            ]
+        );
     }
 }
