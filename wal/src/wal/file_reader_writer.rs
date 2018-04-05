@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::mem;
+use std::ptr;
 use wal::Code;
 use wal::WritableFile;
 use wal::aligned_buffer::AlignedBuffer;
@@ -99,7 +100,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
             while (left > 0) {
                 println!("f left {}", left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
-                println!("f left {} {:?} {:?}",left,slice[src..].to_vec(),self.buf_);
+                println!("f left {} {:?} ",left,slice[src..].to_vec());
                 left -= appended;
                 src += appended;
                 if (left > 0) {
@@ -127,10 +128,12 @@ impl<T: WritableFile> WritableFileWriter<T> {
     pub fn flush(&mut self) -> state {
         let mut s: state;
         if (self.buf_.get_current_size() > 0) {
-            if cfg!(not(feature = "CIBO_LITE")) {}
+            if cfg!(not(feature = "CIBO_LITE")) {
+                s = self.Write_direct();
+            }
         } else {
-            println!("write buffered")
-            //self.write_buffered(self.buf_.BufferStart(),self.buf_.)
+            //println!("write buffered")
+            //self.write_buffered(self.buf_,self.buf_.get_current_size());
         }
         s = self.writable_file_.flush();
         if (!s.isOk()) {
@@ -229,7 +232,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
     }
 
     #[cfg(not(feature = "CIBO_LITE"))]
-    fn WriteDirect(&mut self) -> state {
+    fn Write_direct(&mut self) -> state {
         assert!(self.writable_file_.use_direct_io());
         let mut s: state = state::ok();
         let alignment: usize = self.buf_.get_alignment();
@@ -240,7 +243,37 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut src = self.buf_.buffer_start();
         let mut write_offset = self.next_write_offset_;
         let mut left = self.buf_.get_current_size();
-        //while (left > 0) {}
+        while (left > 0) {
+            //rate_limiter
+            let mut size = left;
+
+            
+            let  mut write_context  = vec![0; size];
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    src,
+                    write_context.as_mut_ptr(),
+                    size,
+                );
+            }
+
+            s = self.writable_file_.positioned_append(write_context,write_offset);
+            if (!s.isOk()) {
+                self.buf_.size(file_advance+leftover_tail);
+                return s
+            }
+            left -= size;
+            unsafe {
+                src = src.offset(size as isize);
+            }
+            write_offset +=size;
+            assert!((self.next_write_offset_ % alignment) == 0);
+        }
+        
+        if (s.isOk()){
+            self.buf_.refit_tail(file_advance, leftover_tail);
+            self.next_write_offset_ += file_advance;
+        }
         s
     }
 }

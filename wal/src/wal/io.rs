@@ -229,8 +229,9 @@ impl WritableFile for PosixWritableFile {
            }
             left -= done as usize;
             offset += done as usize;
-            unsafe {            src = src.offset(done);
-}
+            unsafe {            
+                src = src.offset(done);
+            }
         }
         self.filesize_ = offset;
         return state::ok();

@@ -101,7 +101,7 @@ impl AlignedBuffer {
         to_copy
     }
 
-    fn read(&mut self, offset: usize, read_size: usize) -> Vec<u8> {
+    pub fn read(&mut self, offset: usize, read_size: usize) -> Vec<u8> {
         let mut result = vec![0; read_size];
         let mut to_read = 0;
         if (offset < self.cursize_) {
@@ -134,7 +134,7 @@ impl AlignedBuffer {
         }
     }
 
-    fn pad_with(&mut self, pad_size: usize, padding: u8) {
+    pub fn pad_with(&mut self, pad_size: usize, padding: u8) {
         assert!((pad_size + self.cursize_) <= self.capacity_);
         unsafe {
             ptr::write_bytes(
@@ -147,7 +147,7 @@ impl AlignedBuffer {
     }
 
     // After a partial flush move the tail to the beginning of the buffer
-    fn refit_tail(&mut self, tail_offset: usize, tail_size: usize) {
+    pub fn refit_tail(&mut self, tail_offset: usize, tail_size: usize) {
         if (tail_size > 0) {
             unsafe {
                 ptr::copy(
@@ -221,5 +221,22 @@ fn test_aligned_buffer() {
     assert_eq!(result.len(), 2);
     unsafe {
         assert_eq!(String::from_utf8_unchecked(result), String::from("bc"));
+    }
+}
+
+#[test]
+fn test_aligned_buffer2() {
+    let mut buf: AlignedBuffer = Default::default();
+    buf.alignment(4);
+    buf.allocate_new_buffer(100, false);
+    let appended = buf.append(
+        
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26].len(),
+    );
+    let result = buf.read(1, appended - 1);
+    assert_eq!(result.len(), 24);
+    unsafe {
+        assert_eq!(result, vec![ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26]);
     }
 }
