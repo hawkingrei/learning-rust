@@ -1,4 +1,5 @@
 use libc;
+use libc::c_int;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
@@ -191,17 +192,23 @@ impl WritableFile for PosixWritableFile {
 
     fn positioned_append(&mut self, mut data: Vec<u8>, mut offset: usize) -> state {
         if (self.use_direct_io()) {
+            println!(
+                "offset {} get_logical_buffer_size {}",
+                offset,
+                get_logical_buffer_size()
+            );
             assert!(IsSectorAligned(offset, get_logical_buffer_size()));
-            //assert!(IsSectorAligned(
-            //    data.as_ptr() as usize,
-            //    get_logical_buffer_size()
-            //));
-            //println!(
-            //    "data len {} get_logical_buffer_size {}",
-            //    data.len(),
-            //    get_logical_buffer_size()
-            //);
-            //assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
+            println!(
+                "data len {} get_logical_buffer_size {}",
+                data.len(),
+                get_logical_buffer_size()
+            );
+
+            assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
+            assert!(IsSectorAligned(
+                data.as_ptr() as usize,
+                get_logical_buffer_size()
+            ));
         }
         assert!(offset <= usize::MAX);
         let mut src = data.as_mut_ptr();
@@ -213,18 +220,51 @@ impl WritableFile for PosixWritableFile {
                 done = libc::pwrite(self.fd_, src as *const libc::c_void, left, offset as i64);
             }
             if done < 1 {
-                if cfg!(any(
-                    target_os = "freebsd",
-                    target_os = "ios",
-                    target_os = "macos"
-                )) {
-                    unsafe {
-                        if (*libc::__error()) as i32 == libc::EINTR {
-                            continue;
-                        }
+                #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
+                unsafe fn errno_location() -> *const c_int {
+                    extern "C" {
+                        fn __error() -> *const c_int;
                     }
+                    __error()
                 }
 
+                #[cfg(target_os = "bitrig")]
+                fn errno_location() -> *const c_int {
+                    extern "C" {
+                        fn __errno() -> *const c_int;
+                    }
+                    unsafe { __errno() }
+                }
+
+                #[cfg(target_os = "dragonfly")]
+                unsafe fn errno_location() -> *const c_int {
+                    extern "C" {
+                        fn __dfly_error() -> *const c_int;
+                    }
+                    __dfly_error()
+                }
+
+                #[cfg(target_os = "openbsd")]
+                unsafe fn errno_location() -> *const c_int {
+                    extern "C" {
+                        fn __errno() -> *const c_int;
+                    }
+                    __errno()
+                }
+
+                #[cfg(any(target_os = "linux", target_os = "android"))]
+                unsafe fn errno_location() -> *const c_int {
+                    extern "C" {
+                        fn __errno_location() -> *const c_int;
+                    }
+                    __errno_location()
+                }
+
+                unsafe {
+                    if (*errno_location()) as i32 == libc::EINTR {
+                        continue;
+                    }
+                }
                 //if cfg!(any(target_os = "linux", target_os = "android")) {
                 //    if  (*libc::__errno_location()) as i32 == libc::EINTR {
                 //        continue;
