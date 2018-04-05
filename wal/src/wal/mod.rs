@@ -48,7 +48,7 @@ struct state {
 
 impl state {
     fn new(code: Code, msg1: String, msg2: String) -> state {
-        let msg = msg1 + &String::from(": ") + &msg2;
+        let msg =format!("{}: {}",msg1,msg2);
         let size = mem::size_of_val(&msg);
         let mut state: Vec<u8> = Vec::with_capacity(size + 5);
         state.extend(EncodeFixed32(size as u32).iter().cloned());
