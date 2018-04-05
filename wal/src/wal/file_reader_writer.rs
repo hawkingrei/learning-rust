@@ -239,6 +239,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut s: state = state::ok();
         let alignment: usize = self.buf_.get_alignment();
+        assert!((self.next_write_offset_ % alignment) == 0);
         let file_advance = truncate_to_page_boundary(alignment, self.buf_.get_current_size());
         let leftover_tail = self.buf_.get_current_size() - file_advance;
         self.buf_.pad_to_aligment_with(0);

@@ -12,6 +12,7 @@ use wal;
 use wal::env::EnvOptions;
 use wal::file_reader_writer::WritableFileWriter;
 use wal::io::PosixWritableFile;
+use wal::log_write::Write;
 
 const k_default_page_size: usize = 4 * 1024;
 
@@ -128,9 +129,11 @@ fn test_wal() {
     let mut op: EnvOptions = EnvOptions::default();
     op.writable_file_max_buffer_size = 50;
     let mut writer = WritableFileWriter::new(fd, op);
+    let mut wal = Write::new(writer, 0, false, false);
+
     let input = vec![
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26
     ];
     println!("input len {} {:?}", input.len(), input);
-    writer.append(input);
+    wal.add_record(input);
 }

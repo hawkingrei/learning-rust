@@ -6,7 +6,7 @@ use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kMaxRecordType, kRecy
 use wal::state;
 
 #[derive(Debug)]
-struct Write<T: wal::WritableFile> {
+pub struct Write<T: wal::WritableFile> {
     dest_: WritableFileWriter<T>,
     block_offset_: usize, // Current offset in block
     log_number_: u64,
@@ -16,7 +16,7 @@ struct Write<T: wal::WritableFile> {
 }
 
 impl<T: wal::WritableFile> Write<T> {
-    fn new(
+    pub fn new(
         dest: WritableFileWriter<T>,
         log_number: u64,
         recycle_log_files: bool,
@@ -36,7 +36,7 @@ impl<T: wal::WritableFile> Write<T> {
         }
     }
     /*const Slice& slice*/
-    fn add_record(&mut self, slice: Vec<u8>) {
+    pub fn add_record(&mut self, slice: Vec<u8>) {
         /*
         const char* ptr = slice.data();
         size_t left = slice.size();
