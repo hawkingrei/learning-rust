@@ -3,6 +3,7 @@ pub mod env;
 pub mod file_reader_writer;
 mod io;
 mod log_format;
+pub mod log_reader;
 pub mod log_write;
 use hash;
 use libc;
