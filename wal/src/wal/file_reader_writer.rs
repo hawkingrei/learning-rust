@@ -132,7 +132,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut s: state;
         if (self.buf_.get_current_size() > 0) {
             if cfg!(not(feature = "CIBO_LITE")) {
-                s = self.Write_direct();
+                s = self.write_direct();
             }
         } else {
             //println!("write buffered")
@@ -235,7 +235,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
     }
 
     #[cfg(not(feature = "CIBO_LITE"))]
-    fn Write_direct(&mut self) -> state {
+    fn write_direct(&mut self) -> state {
         assert!(self.writable_file_.use_direct_io());
         let mut s: state = state::ok();
         let alignment: usize = self.buf_.get_alignment();

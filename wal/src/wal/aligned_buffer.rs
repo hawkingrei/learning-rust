@@ -124,6 +124,8 @@ impl AlignedBuffer {
         let total_size = round_up(self.cursize_, self.alignment_);
         let pad_size = total_size - self.cursize_;
         if pad_size > 0 {
+            assert!((pad_size + self.cursize_) <= self.capacity_);
+
             unsafe {
                 ptr::write_bytes(
                     self.bufstart_.offset(self.cursize_ as isize),

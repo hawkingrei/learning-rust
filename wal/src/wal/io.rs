@@ -192,23 +192,11 @@ impl WritableFile for PosixWritableFile {
 
     fn positioned_append(&mut self, mut data: Vec<u8>, mut offset: usize) -> state {
         if (self.use_direct_io()) {
-            println!(
-                "offset {} get_logical_buffer_size {}",
-                offset,
-                get_logical_buffer_size()
-            );
-            assert!(IsSectorAligned(offset, get_logical_buffer_size()));
-            println!(
-                "data len {} get_logical_buffer_size {}",
-                data.len(),
-                get_logical_buffer_size()
-            );
-
-            assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
-            assert!(IsSectorAligned(
-                data.as_ptr() as usize,
-                get_logical_buffer_size()
-            ));
+            //println!("offset {} get_logical_buffer_size {}",offset,get_logical_buffer_size());
+            //assert!(IsSectorAligned(offset, get_logical_buffer_size()));
+            //println!("data len {} get_logical_buffer_size {}",data.len(),get_logical_buffer_size());
+            //assert!(IsSectorAligned(data.len(), get_logical_buffer_size()));
+            //assert!(IsSectorAligned(data.as_ptr() as usize,get_logical_buffer_size()));
         }
         assert!(offset <= usize::MAX);
         let mut src = data.as_mut_ptr();
