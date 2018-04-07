@@ -1,6 +1,7 @@
 use std::cmp::min;
 use std::mem;
 use std::ptr;
+use std::sync::atomic::AtomicIsize;
 use wal::Code;
 use wal::WritableFile;
 use wal::aligned_buffer::AlignedBuffer;
@@ -284,4 +285,13 @@ impl<T: WritableFile> Drop for WritableFileWriter<T> {
             self.close();
         }
     }
+}
+
+#[derive(Debug)]
+pub struct SequentialFileReader<T: WritableFile> {
+    file_: T,
+    offset_: AtomicIsize,
+    // uint64_t                bytes_per_sync_;
+    // RateLimiter*            rate_limiter_;
+    // Statistics* stats_;
 }
