@@ -294,6 +294,7 @@ pub struct PosixSequentialFile {
 
 impl PosixSequentialFile {
     fn new(filename: String, fd: i32) -> PosixSequentialFile {
+        let flag = libc::O_RDONLY;
         PosixSequentialFile {
             filename_: filename,
             fd_: fd,
