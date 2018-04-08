@@ -283,3 +283,22 @@ fn test_append() {
     p.append(String::from("hello").into_bytes());
     p.sync();
 }
+
+#[derive(Debug)]
+pub struct PosixSequentialFile {
+    filename_: String,
+    fd_: i32,
+    use_direct_io_: bool,
+    logical_sector_size_: usize,
+}
+
+impl PosixSequentialFile {
+    fn new(filename: String, fd: i32) -> PosixSequentialFile {
+        PosixSequentialFile {
+            filename_: filename,
+            fd_: fd,
+            use_direct_io_: true,
+            logical_sector_size_: get_logical_buffer_size(),
+        }
+    }
+}
