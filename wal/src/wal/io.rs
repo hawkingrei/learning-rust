@@ -293,8 +293,10 @@ pub struct PosixSequentialFile {
 }
 
 impl PosixSequentialFile {
-    fn new(filename: String, fd: i32) -> PosixSequentialFile {
+    fn new(filename: String) -> PosixSequentialFile {
+        let fd = -1;
         let flag = libc::O_RDONLY;
+        if cfg!(target_endian = "little") {}
         PosixSequentialFile {
             filename_: filename,
             fd_: fd,
