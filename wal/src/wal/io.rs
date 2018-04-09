@@ -254,12 +254,6 @@ impl WritableFile for PosixWritableFile {
                         continue;
                     }
                 }
-                //if cfg!(any(target_os = "linux", target_os = "android")) {
-                //    if  (*libc::__errno_location()) as i32 == libc::EINTR {
-                //        continue;
-                //    }
-                //}
-
                 return state::new(
                     Code::kIOError,
                     format!("While pwrite to file at offset {}", offset.to_string()),
