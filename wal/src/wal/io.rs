@@ -305,7 +305,7 @@ pub struct PosixSequentialFile {
 
 impl PosixSequentialFile {
     fn new(filename: String) -> PosixSequentialFile {
-        let fd = -1;
+        let mut fd = -1;
         let flag;
         flag = get_flag_for_posix_sequential_file();
         unsafe {
