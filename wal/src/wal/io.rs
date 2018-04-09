@@ -284,6 +284,17 @@ fn test_append() {
     p.sync();
 }
 
+#[cfg(target_os = "macos")]
+fn get_flag_for_posix_sequential_file() -> i32 {
+    libc::O_WRONLY
+}
+
+#[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd",
+          target_os = "linux", target_os = "netbsd"))]
+fn get_flag_for_posix_sequential_file() -> i32 {
+    libc::O_WRONLY | libc::O_DIRECT
+}
+
 #[derive(Debug)]
 pub struct PosixSequentialFile {
     filename_: String,
@@ -295,8 +306,15 @@ pub struct PosixSequentialFile {
 impl PosixSequentialFile {
     fn new(filename: String) -> PosixSequentialFile {
         let fd = -1;
-        let flag = libc::O_RDONLY;
-        if cfg!(target_endian = "little") {}
+        let flag;
+        flag = get_flag_for_posix_sequential_file();
+        unsafe {
+            fd = libc::open(
+                CString::from_vec_unchecked(filename.clone().into_bytes()).as_ptr(),
+                flag,
+                0o644,
+            );
+        }
         PosixSequentialFile {
             filename_: filename,
             fd_: fd,
