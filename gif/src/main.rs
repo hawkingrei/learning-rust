@@ -1,27 +1,48 @@
 extern crate gif;
 use gif::Frame;
 use gif::SetParameter;
+use std::env;
+use std::fs;
 use std::fs::File;
+use std::io::Read;
+use std::time::SystemTime;
 fn main() {
-	let mut decoder = gif::Decoder::new(File::open("test.gif").unwrap());
-	decoder.set(gif::ColorOutput::RGBA);
-	let mut decoder = decoder.read_info().unwrap();
-	let mut nframe = Frame::default();
-	let mut image = File::create("test1.gif").unwrap();
-	let mut encoder = gif::Encoder::new(
-		&mut image,
-		decoder.width(),
-		decoder.height(),
-		match decoder.global_palette() {
-			// The division was valid
-			Some(x) => &x,
-			// The division was invalid
-			None => &[],
-		},
-	).unwrap();
-	let frame = match decoder.read_next_frame().unwrap() {
-		Some(frame) => frame,
-		None => std::process::exit(0),
-	};
-	let mut nframe = Frame::default();
+    let args: Vec<String> = env::args().collect();
+    let metadata = match fs::metadata(&args[1]) {
+        Ok(x) => x.len(),
+        Err(_) => 0,
+    };
+    let mut f = File::open(&args[1]).unwrap();
+
+    let mut input = Vec::new();
+    f.read_to_end(&mut input).unwrap();
+    let mut decoder = gif::Decoder::new(&*input);
+
+    let sys_time = SystemTime::now();
+    let mut decoder = decoder.read_info().unwrap();
+    let nframe = Frame::default();
+    let mut image = Vec::new();
+    //File::create(&args[1].replace(".gif", "_1.gif")).unwrap();
+
+    let mut encoder = gif::Encoder::new(
+        &mut image,
+        decoder.width(),
+        decoder.height(),
+        match decoder.global_palette() {
+            // The division was valid
+            Some(x) => &x,
+            // The division was invalid
+            None => &[],
+        },
+    ).unwrap();
+    let frame = match decoder.read_next_frame().unwrap() {
+        Some(frame) => frame,
+        None => std::process::exit(0),
+    };
+    encoder.write_frame(&frame).unwrap();
+    let sys_next_time = SystemTime::now();
+    let difference = sys_next_time
+        .duration_since(sys_time)
+        .expect("SystemTime::duration_since failed");
+    println!("{} {} {:?}", args[1], metadata, difference);
 }
