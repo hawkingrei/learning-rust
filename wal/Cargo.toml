@@ -5,4 +5,4 @@ authors = ["真人 <weizhen.wang@duitang.com>"]
 
 [dependencies]
 zstd = "0.4"
-libc = "0.2.39"
+libc = "0.2.40"
