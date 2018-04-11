@@ -4,11 +4,11 @@ use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
 use std::usize;
-use wal::Code;
-use wal::WritableFile;
 use wal::io;
 use wal::k_default_page_size;
 use wal::state;
+use wal::Code;
+use wal::WritableFile;
 
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
 unsafe fn errno_location() -> *const c_int {
@@ -66,8 +66,15 @@ fn get_flag() -> i32 {
     libc::O_CREAT
 }
 
-#[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd",
-          target_os = "linux", target_os = "netbsd"))]
+#[cfg(
+    any(
+        target_os = "android",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "linux",
+        target_os = "netbsd"
+    )
+)]
 fn get_flag() -> i32 {
     libc::O_CREAT | libc::O_DIRECT
 }
@@ -284,8 +291,15 @@ fn get_flag_for_posix_sequential_file() -> i32 {
     libc::O_WRONLY
 }
 
-#[cfg(any(target_os = "android", target_os = "dragonfly", target_os = "freebsd",
-          target_os = "linux", target_os = "netbsd"))]
+#[cfg(
+    any(
+        target_os = "android",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "linux",
+        target_os = "netbsd"
+    )
+)]
 fn get_flag_for_posix_sequential_file() -> i32 {
     libc::O_WRONLY | libc::O_DIRECT
 }
@@ -303,13 +317,19 @@ impl PosixSequentialFile {
         let mut fd = -1;
         let flag;
         flag = get_flag_for_posix_sequential_file();
-        unsafe {
-            fd = libc::open(
-                CString::from_vec_unchecked(filename.clone().into_bytes()).as_ptr(),
-                flag,
-                0o644,
-            );
+        loop {
+            unsafe {
+                fd = libc::open(
+                    CString::from_vec_unchecked(filename.clone().into_bytes()).as_ptr(),
+                    flag,
+                    0o644,
+                );
+            }
+            if !(fd < 0 && *errno_location()) as i32 == libc::EINTR {
+                break;
+            }
         }
+
         PosixSequentialFile {
             filename_: filename,
             fd_: fd,
