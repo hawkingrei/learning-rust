@@ -1,0 +1,1 @@
+char *get_first_frame(char *image);
