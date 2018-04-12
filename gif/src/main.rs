@@ -4,7 +4,9 @@ use gif::SetParameter;
 use std::env;
 use std::fs;
 use std::fs::File;
+use std::io::prelude::*;
 use std::io::Read;
+use std::io::Write;
 use std::time::SystemTime;
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -23,26 +25,35 @@ fn main() {
     let nframe = Frame::default();
     let mut image = Vec::new();
     //File::create(&args[1].replace(".gif", "_1.gif")).unwrap();
+    {
+        let readimage = &mut image;
+        let mut encoder = gif::Encoder::new(
+            //&mut image,
+            readimage,
+            decoder.width(),
+            decoder.height(),
+            match decoder.global_palette() {
+                // The division was valid
+                Some(x) => &x,
+                // The division was invalid
+                None => &[],
+            },
+        ).unwrap();
+        let frame = match decoder.read_next_frame().unwrap() {
+            Some(frame) => frame,
+            None => std::process::exit(0),
+        };
+        encoder.write_frame(&frame).unwrap();
+    }
 
-    let mut encoder = gif::Encoder::new(
-        &mut image,
-        decoder.width(),
-        decoder.height(),
-        match decoder.global_palette() {
-            // The division was valid
-            Some(x) => &x,
-            // The division was invalid
-            None => &[],
-        },
-    ).unwrap();
-    let frame = match decoder.read_next_frame().unwrap() {
-        Some(frame) => frame,
-        None => std::process::exit(0),
-    };
-    encoder.write_frame(&frame).unwrap();
+    println!("img {:?}", image.len());
     let sys_next_time = SystemTime::now();
     let difference = sys_next_time
         .duration_since(sys_time)
         .expect("SystemTime::duration_since failed");
     println!("{} {} {:?}", args[1], metadata, difference);
+    let mut f = File::create("test1.gif").expect("Unable to create file");
+    for i in image {
+        f.write_all((&[i])).expect("Unable to write data");
+    }
 }
