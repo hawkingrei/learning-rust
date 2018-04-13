@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct EnvOptions {
     // If true, then use mmap to read data
     pub use_mmap_reads: bool,

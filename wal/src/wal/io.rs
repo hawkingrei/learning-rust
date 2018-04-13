@@ -3,6 +3,7 @@ use libc::c_int;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
+use std::ptr;
 use std::usize;
 use wal::env;
 use wal::io;
@@ -326,7 +327,7 @@ pub struct PosixSequentialFile {
 }
 
 impl PosixSequentialFile {
-    fn new(filename: String) -> PosixSequentialFile {
+    fn new(filename: String, options: env::EnvOptions) -> PosixSequentialFile {
         let mut fd = -1;
         let flag;
         flag = get_flag_for_posix_sequential_file();
@@ -346,6 +347,24 @@ impl PosixSequentialFile {
             // error
         }
 
+        SetFD_CLOEXEC(fd, options.clone());
+        if (options.use_direct_reads && !options.use_mmap_reads) {
+            if cfg!(target_os = "macos") {
+                unsafe {
+                    if (libc::fcntl(fd, libc::F_NOCACHE, 1) == -1) {
+                        libc::close(fd);
+                        //return IOError("While fcntl NoCache", fname, errno);
+                    }
+                }
+            }
+        } else {
+            loop {
+                unsafe {
+                    let file = libc::fdopen(fd, &('r' as libc::c_char));
+                    if (file == 0 as *mut libc::FILE && *errno_location() as i32 == libc::EINTR) {}
+                }
+            }
+        }
         PosixSequentialFile {
             filename_: filename,
             fd_: fd,
