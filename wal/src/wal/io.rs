@@ -4,11 +4,24 @@ use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
 use std::usize;
+use wal::env;
 use wal::io;
 use wal::k_default_page_size;
 use wal::state;
 use wal::Code;
 use wal::WritableFile;
+
+fn SetFD_CLOEXEC(fd: i32, options: env::EnvOptions) {
+    if (options.set_fd_cloexec && fd > 0) {
+        unsafe {
+            libc::fcntl(
+                fd,
+                libc::F_SETFD,
+                libc::fcntl(fd, libc::F_GETFD) | libc::FD_CLOEXEC,
+            );
+        }
+    }
+}
 
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
 unsafe fn errno_location() -> *const c_int {
@@ -324,10 +337,13 @@ impl PosixSequentialFile {
                     flag,
                     0o644,
                 );
+                if !(fd < 0) && *errno_location() as i32 == libc::EINTR {
+                    break;
+                }
             }
-            if !(fd < 0 && *errno_location()) as i32 == libc::EINTR {
-                break;
-            }
+        }
+        if fd < 0 {
+            // error
         }
 
         PosixSequentialFile {
