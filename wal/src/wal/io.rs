@@ -302,7 +302,7 @@ fn test_append() {
 
 #[cfg(target_os = "macos")]
 fn get_flag_for_posix_sequential_file() -> i32 {
-    libc::O_WRONLY
+    0
 }
 
 #[cfg(
@@ -315,7 +315,7 @@ fn get_flag_for_posix_sequential_file() -> i32 {
     )
 )]
 fn get_flag_for_posix_sequential_file() -> i32 {
-    libc::O_WRONLY | libc::O_DIRECT
+    libc::O_DIRECT
 }
 
 #[derive(Debug)]
@@ -329,7 +329,18 @@ pub struct PosixSequentialFile {
 impl PosixSequentialFile {
     fn new(filename: String, options: env::EnvOptions, ptr: &mut PosixSequentialFile) -> state {
         let mut fd = -1;
-        let flag;
+        let mut flag = libc::O_RDONLY;
+
+        if (options.use_direct_reads && !options.use_mmap_reads) {
+            if cfg!(feature = "CIBO_LITE") {
+                return state::new(
+                    Code::kIOError,
+                    "Direct I/O not supported in RocksDB lite".to_string(),
+                    "".to_string(),
+                );
+            }
+            flag = flag | get_flag_for_posix_sequential_file();
+        }
         flag = get_flag_for_posix_sequential_file();
         loop {
             unsafe {
