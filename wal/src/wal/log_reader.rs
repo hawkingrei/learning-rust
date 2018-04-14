@@ -1,4 +1,5 @@
 use wal;
+use wal::log_format::kBlockSize;
 use wal::log_format::kMaxRecordType;
 #[derive(Clone, Copy)]
 pub enum RecordType {
@@ -25,7 +26,22 @@ pub struct Reader {
     eof_offset_: usize,
     last_record_offset_: u64,
     end_of_buffer_offset_: u64,
-    initial_offset: u64,
+    initial_offset_: u64,
     log_number_: u64,
     recycled: bool,
+}
+
+impl Reader {
+    fn SkipToInitialBlock(&mut self) -> bool {
+        let initial_offset_in_block = self.initial_offset_ % kBlockSize as u64;
+        let mut block_start_location = self.initial_offset_ - initial_offset_in_block;
+
+        if (initial_offset_in_block > kBlockSize as u64 - 6) {
+            block_start_location += kBlockSize as u64;
+        }
+
+        self.end_of_buffer_offset_ = block_start_location;
+
+        return true;
+    }
 }
