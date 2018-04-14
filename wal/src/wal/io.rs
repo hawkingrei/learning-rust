@@ -327,7 +327,7 @@ pub struct PosixSequentialFile {
 }
 
 impl PosixSequentialFile {
-    fn new(filename: String, options: env::EnvOptions) -> PosixSequentialFile {
+    fn new(filename: String, options: env::EnvOptions, ptr: &mut PosixSequentialFile) -> state {
         let mut fd = -1;
         let flag;
         flag = get_flag_for_posix_sequential_file();
@@ -371,11 +371,12 @@ impl PosixSequentialFile {
                 }
             }
         }
-        PosixSequentialFile {
+        *ptr = PosixSequentialFile {
             filename_: filename,
             fd_: fd,
             use_direct_io_: true,
             logical_sector_size_: get_logical_buffer_size(),
-        }
+        };
+        return state::ok();
     }
 }
