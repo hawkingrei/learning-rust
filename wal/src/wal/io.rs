@@ -335,7 +335,7 @@ impl PosixSequentialFile {
             if cfg!(feature = "CIBO_LITE") {
                 return state::new(
                     Code::kIOError,
-                    "Direct I/O not supported in RocksDB lite".to_string(),
+                    "Direct I/O not supported in cibo lite".to_string(),
                     "".to_string(),
                 );
             }
@@ -355,7 +355,11 @@ impl PosixSequentialFile {
             }
         }
         if fd < 0 {
-            // error
+            return state::new(
+                Code::kIOError,
+                "While opening a file for sequentially reading".to_string(),
+                "".to_string(),
+            );
         }
 
         SetFD_CLOEXEC(fd, options.clone());
@@ -379,6 +383,11 @@ impl PosixSequentialFile {
                 }
                 if file == 0 as *mut libc::FILE {
                     libc::close(fd);
+                    return state::new(
+                        Code::kIOError,
+                        "While opening a file for sequentially read".to_string(),
+                        "".to_string(),
+                    );
                 }
             }
         }
