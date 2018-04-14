@@ -358,10 +358,16 @@ impl PosixSequentialFile {
                 }
             }
         } else {
-            loop {
-                unsafe {
-                    let file = libc::fdopen(fd, &('r' as libc::c_char));
-                    if (file == 0 as *mut libc::FILE && *errno_location() as i32 == libc::EINTR) {}
+            unsafe {
+                let mut file;
+                loop {
+                    file = libc::fdopen(fd, &('r' as libc::c_char));
+                    if !(file == 0 as *mut libc::FILE && *errno_location() as i32 == libc::EINTR) {
+                        break;
+                    }
+                }
+                if file == 0 as *mut libc::FILE {
+                    libc::close(fd);
                 }
             }
         }
