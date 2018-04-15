@@ -324,13 +324,14 @@ pub struct PosixSequentialFile {
     fd_: i32,
     use_direct_io_: bool,
     logical_sector_size_: usize,
+    file_: *mut libc::FILE,
 }
 
 impl PosixSequentialFile {
     fn new(filename: String, options: env::EnvOptions, ptr: &mut PosixSequentialFile) -> state {
         let mut fd = -1;
         let mut flag = libc::O_RDONLY;
-
+        let mut file = 0 as *mut libc::FILE;
         if (options.use_direct_reads && !options.use_mmap_reads) {
             if cfg!(feature = "CIBO_LITE") {
                 return state::new(
@@ -374,7 +375,6 @@ impl PosixSequentialFile {
             }
         } else {
             unsafe {
-                let mut file;
                 loop {
                     file = libc::fdopen(fd, &('r' as libc::c_char));
                     if !(file == 0 as *mut libc::FILE && *errno_location() as i32 == libc::EINTR) {
@@ -394,9 +394,24 @@ impl PosixSequentialFile {
         *ptr = PosixSequentialFile {
             filename_: filename,
             fd_: fd,
+            file_: file,
             use_direct_io_: true,
             logical_sector_size_: get_logical_buffer_size(),
         };
         return state::ok();
+    }
+
+    fn Skip(&self, n: i64) -> state {
+        unsafe {
+            if (libc::fseek(self.file_, n, libc::SEEK_CUR) > 0) {
+                // return IOError("While fseek to skip " + ToString(n) + " bytes", filename_, errno);
+                return state::new(
+                    Code::kIOError,
+                    "While fseek to skip ".to_string() + &n.to_string() + &" bytes".to_string(),
+                    "".to_string(),
+                );
+            }
+            return state::ok();
+        }
     }
 }

@@ -42,6 +42,7 @@ impl Reader {
 
         self.end_of_buffer_offset_ = block_start_location;
 
+        if block_start_location > 0 {}
         return true;
     }
 }
