@@ -366,12 +366,11 @@ impl SequentialFile for PosixSequentialFile {
 
         SetFD_CLOEXEC(fd, options.clone());
         if (options.use_direct_reads && !options.use_mmap_reads) {
-            if cfg!(target_os = "macos") {
-                unsafe {
-                    if (libc::fcntl(fd, libc::F_NOCACHE, 1) == -1) {
-                        libc::close(fd);
-                        //return IOError("While fcntl NoCache", fname, errno);
-                    }
+            #[cfg(target_os = "macos")]
+            unsafe {
+                if (libc::fcntl(fd, libc::F_NOCACHE, 1) == -1) {
+                    libc::close(fd);
+                    //return IOError("While fcntl NoCache", fname, errno);
                 }
             }
         } else {
