@@ -10,6 +10,7 @@ use wal::io;
 use wal::k_default_page_size;
 use wal::state;
 use wal::Code;
+use wal::SequentialFile;
 use wal::WritableFile;
 
 fn SetFD_CLOEXEC(fd: i32, options: env::EnvOptions) {
@@ -327,7 +328,7 @@ pub struct PosixSequentialFile {
     file_: *mut libc::FILE,
 }
 
-impl PosixSequentialFile {
+impl SequentialFile for PosixSequentialFile {
     fn new(filename: String, options: env::EnvOptions, ptr: &mut PosixSequentialFile) -> state {
         let mut fd = -1;
         let mut flag = libc::O_RDONLY;

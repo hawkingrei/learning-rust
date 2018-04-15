@@ -117,6 +117,14 @@ pub trait WritableFile: Sized {
     }
 }
 
+pub trait SequentialFile<RHS = Self>: Sized {
+    fn new(filename: String, options: env::EnvOptions, ptr: &mut RHS) -> state;
+    fn Skip(&self, n: i64) -> state;
+    fn use_direct_io(&self) -> bool {
+        false
+    }
+}
+
 #[test]
 fn test_state() {
     let s = state::new(Code::kOk, String::from("a"), String::from("b"));
