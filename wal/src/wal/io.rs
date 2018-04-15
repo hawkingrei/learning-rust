@@ -13,16 +13,6 @@ use wal::Code;
 use wal::SequentialFile;
 use wal::WritableFile;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
-extern "C" {
-    pub fn fread_unlocked(
-        __ptr: *mut ::libc::c_void,
-        __size: size_t,
-        __n: size_t,
-        __stream: *mut FILE,
-    ) -> size_t;
-}
-
 fn SetFD_CLOEXEC(fd: i32, options: env::EnvOptions) {
     if (options.set_fd_cloexec && fd > 0) {
         unsafe {
