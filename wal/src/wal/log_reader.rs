@@ -1,4 +1,6 @@
 use wal;
+use wal::file_reader_writer::SequentialFileReader;
+use wal::io::PosixSequentialFile;
 use wal::log_format::kBlockSize;
 use wal::log_format::kMaxRecordType;
 #[derive(Clone, Copy)]
@@ -29,6 +31,7 @@ pub struct Reader {
     initial_offset_: u64,
     log_number_: u64,
     recycled: bool,
+    file_: SequentialFileReader<PosixSequentialFile>,
 }
 
 impl Reader {
@@ -42,7 +45,13 @@ impl Reader {
 
         self.end_of_buffer_offset_ = block_start_location;
 
-        if block_start_location > 0 {}
+        if block_start_location > 0 {
+            //let skip_status = self.file_.Skip(block_start_location);
+            //if skip_status.is_ok() {
+            //ReportDrop(static_cast<size_t>(block_start_location), skip_status);
+            //return false;
+            //}
+        }
         return true;
     }
 }
