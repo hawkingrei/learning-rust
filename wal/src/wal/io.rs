@@ -13,6 +13,11 @@ use wal::Code;
 use wal::SequentialFile;
 use wal::WritableFile;
 
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern "C" {
+    pub fn fread_unlocked(ptr: *mut void_t, size: size_t, n: size_t, stream: *mut FILE) -> size_t;
+}
+
 fn SetFD_CLOEXEC(fd: i32, options: env::EnvOptions) {
     if (options.set_fd_cloexec && fd > 0) {
         unsafe {
@@ -414,5 +419,9 @@ impl SequentialFile for PosixSequentialFile {
             }
             return state::ok();
         }
+    }
+
+    fn Read() -> state {
+        return state::ok();
     }
 }
