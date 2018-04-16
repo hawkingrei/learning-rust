@@ -25,7 +25,7 @@ pub extern "C" fn get_first_frame(
                 readimage,
                 decoder.width(),
                 decoder.height(),
-                match decoder.global_() {
+                match decoder.global_palette() {
                     // The division was valid
                     Some(x) => &x,
                     // The division was invalid
