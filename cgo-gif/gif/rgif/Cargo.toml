@@ -3,6 +3,9 @@ name = "rgif"
 version = "0.1.0"
 authors = ["zhenren <wangweizhen@bilibili.com>"]
 
+[profile.release]
+opt-level = 3
+
 [lib]
 crate-type = ["cdylib"]
 

@@ -1,25 +1,23 @@
 extern crate gif;
 extern crate libc;
 use gif::Frame;
+use libc::c_char;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem;
 
-#[repr(C)]
-pub struct Image {
-    pub data: *mut u8,
-    pub len: usize,
-}
-
 #[no_mangle]
-pub extern "C" fn get_first_frame(ptr: *const libc::uint8_t, length: libc::size_t) -> Image {
+pub extern "C" fn get_first_frame(
+    ptr: *const libc::uint8_t,
+    length: libc::size_t,
+    rptr: *mut u8,
+) -> usize {
     unsafe {
         let mut input: Vec<u8> =
             std::slice::from_raw_parts(ptr as *const u8, length as usize).to_vec();
-        println!("rust len {}", input.len());
         let mut decoder = gif::Decoder::new(&*input);
         let mut decoder = decoder.read_info().unwrap();
-        let mut image = Vec::new();
+        let mut image = Vec::from_raw_parts(rptr, 0, length as usize);
         {
             let readimage = &mut image;
             let mut encoder = gif::Encoder::new(
@@ -27,7 +25,7 @@ pub extern "C" fn get_first_frame(ptr: *const libc::uint8_t, length: libc::size_
                 readimage,
                 decoder.width(),
                 decoder.height(),
-                match decoder.global_palette() {
+                match decoder.global_() {
                     // The division was valid
                     Some(x) => &x,
                     // The division was invalid
@@ -39,11 +37,8 @@ pub extern "C" fn get_first_frame(ptr: *const libc::uint8_t, length: libc::size_
                 None => (),
             };
         }
-        let result = Image {
-            data: image.as_mut_ptr(),
-            len: image.len(),
-        };
-        mem::forget(image);
-        return result;
+        let rlen = image.len();
+        mem::forget(rptr);
+        return rlen;
     }
 }
