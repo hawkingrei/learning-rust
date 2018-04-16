@@ -13,6 +13,36 @@ use wal::Code;
 use wal::SequentialFile;
 use wal::WritableFile;
 
+#[cfg(any(target_os = "macos"))]
+unsafe fn fread_unlock(
+    ptr: *mut libc::c_void,
+    size: libc::size_t,
+    nobj: libc::size_t,
+    stream: *mut libc::FILE,
+) -> libc::size_t {
+    return libc::fread(ptr, size, nobj, stream);
+}
+
+#[cfg(any(target_os = "linux"))]
+extern "C" {
+    fn posix_fread_unlocked(
+        __ptr: *mut libc::c_void,
+        __size: libc::size_t,
+        __n: libc::size_t,
+        __stream: *mut libc::FILE,
+    ) -> libc::size_t;
+}
+
+#[cfg(any(target_os = "linux"))]
+fn fread_unlock(
+    ptr: *mut libc::c_void,
+    size: libc::size_t,
+    nobj: libc::size_t,
+    stream: *mut libc::FILE,
+) -> libc::size_t {
+    return posix_fread_unlocked(ptr, size, nobj, stream);
+}
+
 fn SetFD_CLOEXEC(fd: i32, options: env::EnvOptions) {
     if (options.set_fd_cloexec && fd > 0) {
         unsafe {
