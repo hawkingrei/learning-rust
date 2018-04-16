@@ -34,7 +34,7 @@ extern "C" {
 }
 
 #[cfg(any(target_os = "linux"))]
-fn fread_unlock(
+unsafe fn fread_unlock(
     ptr: *mut libc::c_void,
     size: libc::size_t,
     nobj: libc::size_t,
