@@ -1,5 +1,10 @@
 extern crate gif;
 extern crate libc;
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::Read;
+use std::io::Write;
 use std::mem;
 
 #[no_mangle]
@@ -41,6 +46,10 @@ pub extern "C" fn get_first_frame(
                 Some(frame) => encoder.write_frame(&frame).unwrap(),
                 None => (),
             };
+        }
+        let mut f = File::create("test_rust.gif").expect("Unable to create file");
+        for i in image.clone() {
+            f.write_all((&[i])).expect("Unable to write data");
         }
         let rlen = image.len();
         mem::forget(rptr);
