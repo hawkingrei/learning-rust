@@ -1,3 +1,3 @@
 #include <stdio.h>
 #include <stdint.h>
-unsigned long get_first_frame(uint8_t *ptr, size_t length, uint8_t *rptr);
+unsigned long get_first_frame(unsigned char *ptr, unsigned long length, short *width, short *height, unsigned char *rptr);

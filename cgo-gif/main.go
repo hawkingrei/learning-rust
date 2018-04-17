@@ -1,14 +1,14 @@
 package main
 
 /*
-#cgo LDFLAGS: -L./lib -lrgif
+#cgo LDFLAGS: -L./lib -lrgif 
 #include "./lib/librgif.h"
+#include <stdlib.h>
 */
 import "C"
 import (
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"unsafe"
 )
 
@@ -18,24 +18,17 @@ func main() {
 		fmt.Print(err)
 		panic(err)
 	}
-	fmt.Println(reflect.TypeOf(C.array))
-	var charray []byte
-	for i := range C.array {
-        charray = append(charray, byte(C.array[i]))
-        
-    }
-	fmt.Println(charray)
-
 	fmt.Println(len(img))
 	//rb := make([]byte,1)
 	//rptr := (*_Ctype_char)(unsafe.Pointer(0))
-	xx := make([]byte,len(img))
-	rptr := C.CBytes(xx)
+	imgbuf := make([]byte,len(img))
+	rptr := C.CBytes(imgbuf)
+	cwidth := _Ctype_short(0)
+	cheight := _Ctype_short(0)
 	fmt.Println(rptr)
-	a := C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),(*_Ctype_uchar)(rptr))
+	imgsize := C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),&cwidth,&cheight,(*_Ctype_uchar)(rptr))
 	fmt.Println(rptr)
-	//psize := C.ulong(unsafe.Sizeof(rptr))
-	fmt.Println("len ",a)
-	gbytes :=C.GoBytes(unsafe.Pointer(rptr), (_Ctype_int)(a))
-	ioutil.WriteFile("test1.gif",gbytes, 0644)
+	fmt.Println((_Ctype_int)(imgsize))
+	data := C.GoBytes(unsafe.Pointer(rptr), (_Ctype_int)(imgsize))
+	ioutil.WriteFile("test1.gif",data, 0644)
 }
