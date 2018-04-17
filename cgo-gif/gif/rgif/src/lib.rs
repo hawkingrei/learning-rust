@@ -48,6 +48,7 @@ pub extern "C" fn get_first_frame(
             };
         }
         let mut f = File::create("test_rust.gif").expect("Unable to create file");
+        println!("{:?}", image);
         for i in image.clone() {
             f.write_all((&[i])).expect("Unable to write data");
         }
