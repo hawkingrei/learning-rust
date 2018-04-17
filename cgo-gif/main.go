@@ -9,7 +9,6 @@ import "C"
 import (
 	"fmt"
 	"io/ioutil"
-	"unsafe"
 )
 
 func main() {
@@ -29,6 +28,6 @@ func main() {
 	imgsize := C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),&cwidth,&cheight,(*_Ctype_uchar)(rptr))
 	fmt.Println(rptr)
 	fmt.Println((_Ctype_int)(imgsize))
-	data := C.GoBytes(unsafe.Pointer(rptr), imgsize)
+	data := C.GoBytes(rptr, imgsize)
 	ioutil.WriteFile("test1.gif",data, 0644)
 }
