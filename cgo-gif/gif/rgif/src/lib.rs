@@ -52,7 +52,6 @@ pub extern "C" fn get_first_frame(
             f.write_all((&[i])).expect("Unable to write data");
         }
         let rlen = image.len();
-        mem::forget(rptr);
         mem::forget(image);
         return rlen;
     }
