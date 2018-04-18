@@ -53,6 +53,7 @@ pub extern "C" fn get_first_frame(
         }
         let rlen = image.len();
         mem::forget(rptr);
+        mem::forget(image);
         return rlen;
     }
 }
