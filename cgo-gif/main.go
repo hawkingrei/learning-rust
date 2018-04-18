@@ -9,13 +9,18 @@ import "C"
 import (
 	"fmt"
 	"io/ioutil"
+	"unsafe"
 )
+
+func toGoBytes(ptr unsafe.Pointer,length C.int) []byte {
+	return C.GoBytes(ptr, length)
+}
 
 func get_ff (img []byte,cwidth,cheight _Ctype_short,imgbuf []byte) {
 	rptr := C.CBytes(imgbuf)
 	imgsize :=  C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),&cwidth,&cheight,(*_Ctype_uchar)(rptr))
 	fmt.Println(rptr)
-	data := C.GoBytes(rptr, imgsize)
+	data := toGoBytes(rptr, imgsize)
 	ioutil.WriteFile("test1.gif",data, 0644)
 }
 
