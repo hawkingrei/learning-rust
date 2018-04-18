@@ -13,6 +13,15 @@ use wal::Code;
 use wal::SequentialFile;
 use wal::WritableFile;
 
+pub fn clearerr(stream: *mut libc::FILE) {
+    extern "C" {
+        fn clearerr(stream: *mut libc::FILE);
+    }
+    unsafe {
+        clearerr(stream);
+    }
+}
+
 #[cfg(any(target_os = "macos"))]
 unsafe fn fread_unlock(
     ptr: *mut libc::c_void,
@@ -445,7 +454,29 @@ impl SequentialFile for PosixSequentialFile {
         }
     }
 
-    fn Read() -> state {
-        return state::ok();
+    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut u8) -> state {
+        let mut s: state = state::ok();
+        let r: usize = 0;
+        loop {
+            let r = fread_unlocked(scratch, 1, n, self.file_);
+            if !(libc::ferror(self.file_) > 0 && ((*errno_location()) as i32 == libc::EINTR)
+                && r == 0)
+            {
+                break;
+            }
+        }
+        *result = std::slice::from_raw_parts(ptr as *const u8, length as usize).to_vec();
+        if (r < n) {
+            if libc::feof(self.file_) > 0 {
+                clearerr(self.file_);
+            } else {
+                s = state::new(
+                    Code::kIOError,
+                    "While reading file sequentially".to_string(),
+                    "".to_string(),
+                );
+            }
+        }
+        return s;
     }
 }
