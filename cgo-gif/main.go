@@ -16,9 +16,9 @@ func toGoBytes(ptr unsafe.Pointer,length C.int) []byte {
 	return C.GoBytes(ptr, length)
 }
 
-func get_ff (img []byte,cwidth,cheight _Ctype_short,imgbuf []byte) {
+func get_ff (img []byte,cwidth,cheight *_Ctype_short,imgbuf []byte) {
 	rptr := C.CBytes(imgbuf)
-	imgsize :=  C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),&cwidth,&cheight,(*_Ctype_uchar)(rptr))
+	imgsize :=  C.get_first_frame((*_Ctype_uchar)(C.CBytes(img)),C.ulong(len(img)),cwidth,cheight,(*_Ctype_uchar)(rptr))
 	fmt.Println(rptr)
 	data := toGoBytes(rptr, imgsize)
 	ioutil.WriteFile("test1.gif",data, 0644)
@@ -38,5 +38,7 @@ func main() {
 	cwidth := _Ctype_short(0)
 	cheight := _Ctype_short(0)
 	fmt.Println(rptr)
-	get_ff(img,cwidth,cheight,imgbuf)
+	get_ff(img,&cwidth,&cheight,imgbuf)
+	fmt.Println("width: ", cwidth)
+	fmt.Println("height: ", cheight)
 }
