@@ -56,3 +56,11 @@ pub extern "C" fn get_first_frame(
         return rlen;
     }
 }
+
+#[no_mangle]
+pub extern "C" fn free_first_frame(rptr: *mut u8, length: libc::size_t) {
+    unsafe {
+        let mut image = Vec::from_raw_parts(rptr, 0, length as usize);
+        mem::drop(image);
+    }
+}
