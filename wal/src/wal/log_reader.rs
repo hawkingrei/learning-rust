@@ -46,12 +46,14 @@ impl Reader {
         self.end_of_buffer_offset_ = block_start_location;
 
         if block_start_location > 0 {
-            //let skip_status = self.file_.Skip(block_start_location);
-            //if skip_status.is_ok() {
-            //ReportDrop(static_cast<size_t>(block_start_location), skip_status);
-            //return false;
-            //}
+            let skip_status = self.file_.Skip(block_start_location);
+            if skip_status.is_ok() {
+                //ReportDrop(static_cast<size_t>(block_start_location), skip_status);
+                return false;
+            }
         }
         return true;
     }
+
+    //fn ReportDrop(bytes: usize, reason: state) {}
 }
