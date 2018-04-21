@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum RecordType {
     kZeroType = 0,
     kFullType = 1,

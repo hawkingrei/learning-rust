@@ -455,7 +455,12 @@ impl SequentialFile for PosixSequentialFile {
         }
     }
 
-    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut libc::c_void) -> state {
+    fn Read(
+        &mut self,
+        n: usize,
+        mut result: &mut Vec<u8>,
+        mut scratch: *mut libc::c_void,
+    ) -> state {
         let mut s: state = state::ok();
         let r: usize = 0;
         unsafe {

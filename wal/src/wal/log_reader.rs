@@ -6,7 +6,7 @@ use wal::log_format;
 use wal::log_format::kBlockSize;
 use wal::log_format::kMaxRecordType;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum RecordType {
     kEof = kMaxRecordType as isize + 1,
     // Returned whenever we find an invalid physical record.
@@ -238,9 +238,26 @@ impl Reader {
         return false;
     }
 
-    fn readPhysicalRecord(&mut self, fragment: &mut Vec<u8>, drop_size: &mut usize) -> isize {
-        while (true) {}
+    fn readPhysicalRecord(&mut self, fragment: &mut Vec<u8>, mut drop_size: &mut usize) -> isize {
+        while (true) {
+            // We need at least the minimum header size
+            if (self.buffer_.len() < log_format::kHeaderSize) {
+                let mut r: isize = 0;
+                if (!self.readMore(&mut drop_size, &mut r)) {
+                    return r;
+                }
+                continue;
+            }
+        }
         return 0;
+    }
+
+    fn readMore(&mut self, mut drop_size: &usize, mut error: &isize) -> bool {
+        if (!self.eof_ && !self.read_error_) {
+            self.buffer_.clear();
+            return true;
+        }
+        return true;
     }
 
     //fn ReportDrop(bytes: usize, reason: state) {}
