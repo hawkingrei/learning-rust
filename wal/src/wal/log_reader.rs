@@ -1,4 +1,5 @@
 use wal;
+use wal::env;
 use wal::file_reader_writer::SequentialFileReader;
 use wal::io::PosixSequentialFile;
 use wal::log_format;
@@ -40,7 +41,7 @@ pub struct Reader {
     end_of_buffer_offset_: u64,
     initial_offset_: u64,
     log_number_: u64,
-    recycled: bool,
+    recycled_: bool,
     file_: SequentialFileReader<PosixSequentialFile>,
 }
 
@@ -72,7 +73,12 @@ impl Reader {
     //
     // TODO krad: Evaluate if we need to move to a more strict mode where we
     // restrict the inconsistency to only the last log
-    fn readRecord(&mut self, mut record: Vec<u8>, mut scratch: Vec<u8>) -> bool {
+    fn readRecord(
+        &mut self,
+        mut record: Vec<u8>,
+        mut scratch: Vec<u8>,
+        wal_recovery_mode: env::WALRecoveryMode,
+    ) -> bool {
         if self.last_record_offset_ < self.initial_offset_ {
             if !(self.SkipToInitialBlock()) {
                 return false;
@@ -158,6 +164,76 @@ impl Reader {
                 }
                 break;
             }
+
+            if record_type == RecordType::kBadHeader as isize {
+                if (wal_recovery_mode == env::WALRecoveryMode::kAbsoluteConsistency) {
+                    // in clean shutdown we don't expect any error in the log files
+                    //ReportCorruption(drop_size, "truncated header");
+                }
+            }
+
+            if record_type == RecordType::kEof as isize {
+                if (in_fragmented_record) {
+                    if (wal_recovery_mode == env::WALRecoveryMode::kAbsoluteConsistency) {
+                        // in clean shutdown we don't expect any error in the log files
+                        //ReportCorruption(drop_size, "truncated header");
+                    }
+                    scratch.clear();
+                }
+                return false;
+            }
+
+            if record_type == RecordType::kOldRecord as isize {
+                if (wal_recovery_mode != env::WALRecoveryMode::kSkipAnyCorruptedRecords) {
+                    // in clean shutdown we don't expect any error in the log files
+                    //ReportCorruption(drop_size, "truncated header");
+                    if (in_fragmented_record) {
+                        if (wal_recovery_mode == env::WALRecoveryMode::kAbsoluteConsistency) {
+                            //ReportCorruption(drop_size, "truncated header");
+                        }
+                        scratch.clear();
+                    }
+                }
+                return false;
+            }
+
+            if record_type == RecordType::kBadRecord as isize {
+                if (in_fragmented_record) {
+                    //ReportCorruption(drop_size, "truncated header");
+                    in_fragmented_record = false;
+                    scratch.clear();
+                }
+                break;
+            }
+
+            if record_type == RecordType::kBadRecordLen as isize
+                || record_type == RecordType::kBadRecordChecksum as isize
+            {
+                if (self.recycled_
+                    && wal_recovery_mode == env::WALRecoveryMode::kTolerateCorruptedTailRecords)
+                {
+                    scratch.clear();
+                    return false;
+                }
+                if (record_type == RecordType::kBadRecordLen as isize) {
+                    //ReportCorruption(drop_size, "bad record length");
+                } else {
+                    //ReportCorruption(drop_size, "checksum mismatch");
+                }
+                if (in_fragmented_record) {
+                    //ReportCorruption(scratch->size(), "error in middle of record");
+                    in_fragmented_record = false;
+                    scratch.clear();
+                }
+                break;
+            }
+
+            //char buf[40];
+            //snprintf(buf, sizeof(buf), "unknown record type %u", record_type);
+            //ReportCorruption((fragment.size() + (in_fragmented_record ? scratch->size() : 0)),buf);
+            in_fragmented_record = false;
+            scratch.clear();
+            break;
         }
         return false;
     }
