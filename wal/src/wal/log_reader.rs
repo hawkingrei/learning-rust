@@ -46,8 +46,8 @@ impl Reader {
         self.end_of_buffer_offset_ = block_start_location;
 
         if block_start_location > 0 {
-            let skip_status = self.file_.Skip(block_start_location);
-            if skip_status.is_ok() {
+            let skip_status = self.file_.Skip(block_start_location as i64);
+            if skip_status.isOk() {
                 //ReportDrop(static_cast<size_t>(block_start_location), skip_status);
                 return false;
             }

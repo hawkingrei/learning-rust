@@ -296,3 +296,9 @@ pub struct SequentialFileReader<T: SequentialFile> {
     // RateLimiter*            rate_limiter_;
     // Statistics* stats_;
 }
+
+impl<T: SequentialFile> SequentialFileReader<T> {
+    pub fn Skip(&self, n: i64) -> state {
+        self.file_.Skip(n)
+    }
+}

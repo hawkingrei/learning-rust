@@ -120,7 +120,7 @@ pub trait WritableFile: Sized {
 pub trait SequentialFile<RHS = Self>: Sized {
     fn new(filename: String, options: env::EnvOptions, ptr: &mut RHS) -> state;
     fn Skip(&self, n: i64) -> state;
-    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut u8) -> state;
+    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut libc::c_void) -> state;
     fn use_direct_io(&self) -> bool {
         false
     }

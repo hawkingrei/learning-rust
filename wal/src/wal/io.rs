@@ -4,6 +4,7 @@ use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
 use std::ptr;
+use std::slice;
 use std::usize;
 use wal::env;
 use wal::io;
@@ -23,7 +24,7 @@ pub fn clearerr(stream: *mut libc::FILE) {
 }
 
 #[cfg(any(target_os = "macos"))]
-unsafe fn fread_unlock(
+unsafe fn fread_unlocked(
     ptr: *mut libc::c_void,
     size: libc::size_t,
     nobj: libc::size_t,
@@ -43,7 +44,7 @@ extern "C" {
 }
 
 #[cfg(any(target_os = "linux"))]
-unsafe fn fread_unlock(
+unsafe fn fread_unlocked(
     ptr: *mut libc::c_void,
     size: libc::size_t,
     nobj: libc::size_t,
@@ -454,27 +455,30 @@ impl SequentialFile for PosixSequentialFile {
         }
     }
 
-    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut u8) -> state {
+    fn Read(&mut self, n: usize, result: &mut Vec<u8>, scratch: *mut libc::c_void) -> state {
         let mut s: state = state::ok();
         let r: usize = 0;
-        loop {
-            let r = fread_unlocked(scratch, 1, n, self.file_);
-            if !(libc::ferror(self.file_) > 0 && ((*errno_location()) as i32 == libc::EINTR)
-                && r == 0)
-            {
-                break;
+        unsafe {
+            loop {
+                let r = fread_unlocked(scratch, 1, n, self.file_);
+                if !(libc::ferror(self.file_) > 0 && ((*errno_location()) as i32 == libc::EINTR)
+                    && r == 0)
+                {
+                    break;
+                }
             }
-        }
-        *result = std::slice::from_raw_parts(ptr as *const u8, length as usize).to_vec();
-        if (r < n) {
-            if libc::feof(self.file_) > 0 {
-                clearerr(self.file_);
-            } else {
-                s = state::new(
-                    Code::kIOError,
-                    "While reading file sequentially".to_string(),
-                    "".to_string(),
-                );
+
+            *result = Vec::from_raw_parts(scratch as *mut u8, r as usize, r as usize).to_vec();
+            if (r < n) {
+                if libc::feof(self.file_) > 0 {
+                    clearerr(self.file_);
+                } else {
+                    s = state::new(
+                        Code::kIOError,
+                        "While reading file sequentially".to_string(),
+                        "".to_string(),
+                    );
+                }
             }
         }
         return s;
