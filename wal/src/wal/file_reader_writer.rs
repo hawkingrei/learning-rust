@@ -1,3 +1,4 @@
+use libc;
 use std::cmp::min;
 use std::mem;
 use std::ptr;
@@ -300,5 +301,14 @@ pub struct SequentialFileReader<T: SequentialFile> {
 impl<T: SequentialFile> SequentialFileReader<T> {
     pub fn Skip(&self, n: i64) -> state {
         self.file_.Skip(n)
+    }
+
+    fn Read(
+        &mut self,
+        n: usize,
+        mut result: &mut Vec<u8>,
+        mut scratch: *mut libc::c_void,
+    ) -> state {
+        self.file_.Read(n, result, scratch)
     }
 }
