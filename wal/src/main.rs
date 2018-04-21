@@ -7,8 +7,8 @@ extern crate libc;
 extern crate zstd;
 use hash::{crc16_arr, crc64};
 use std::fs::File;
-use std::io::SeekFrom;
 use std::io::prelude::*;
+use std::io::SeekFrom;
 use std::mem::size_of_val;
 use wal::log_write;
 #[cfg(feature = "zstd")]

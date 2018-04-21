@@ -1,8 +1,10 @@
 use wal;
 use wal::file_reader_writer::SequentialFileReader;
 use wal::io::PosixSequentialFile;
+use wal::log_format;
 use wal::log_format::kBlockSize;
 use wal::log_format::kMaxRecordType;
+
 #[derive(Clone, Copy)]
 pub enum RecordType {
     kEof = kMaxRecordType as isize + 1,
@@ -63,11 +65,6 @@ impl Reader {
         return true;
     }
 
-    fn readPhysicalRecord(&mut self, fragment: &mut Vec<u8>, drop_size: &mut usize) -> isize {
-        while (true) {}
-        return 0;
-    }
-
     // For kAbsoluteConsistency, on clean shutdown we don't expect any error
     // in the log files.  For other modes, we can ignore only incomplete records
     // in the last log file, which are presumably due to a write in progress
@@ -75,7 +72,7 @@ impl Reader {
     //
     // TODO krad: Evaluate if we need to move to a more strict mode where we
     // restrict the inconsistency to only the last log
-    fn readRecord(&mut self, record: &mut Vec<u8>, scratch: &mut Vec<u8>) -> bool {
+    fn readRecord(&mut self, mut record: Vec<u8>, mut scratch: Vec<u8>) -> bool {
         if self.last_record_offset_ < self.initial_offset_ {
             if !(self.SkipToInitialBlock()) {
                 return false;
@@ -93,8 +90,81 @@ impl Reader {
             let mut physical_record_offset = self.end_of_buffer_offset_ - self.buffer_.len() as u64;
             let mut drop_size: usize = 0;
             let record_type = self.readPhysicalRecord(&mut fragment, &mut drop_size);
+
+            if record_type == log_format::RecordType::kFullType as isize
+                || record_type == log_format::RecordType::kRecyclableFullType as isize
+            {
+                if (in_fragmented_record && !(scratch.len() == 0)) {
+                    // Handle bug in earlier versions of log::Writer where
+                    // it could emit an empty kFirstType record at the tail end
+                    // of a block followed by a kFullType or kFirstType record
+                    // at the beginning of the next block.
+                    //ReportCorruption(scratch->size(), "partial record without end(1)");
+                }
+                {
+                    prospective_record_offset = physical_record_offset;
+                    scratch.clear();
+                    record = fragment.clone();
+                    self.last_record_offset_ = prospective_record_offset;
+                    return true;
+                }
+            }
+
+            if record_type == log_format::RecordType::kFirstType as isize
+                || record_type == log_format::RecordType::kRecyclableFirstType as isize
+            {
+                if (in_fragmented_record && !(scratch.len() == 0)) {
+                    // Handle bug in earlier versions of log::Writer where
+                    // it could emit an empty kFirstType record at the tail end
+                    // of a block followed by a kFullType or kFirstType record
+                    // at the beginning of the next block.
+                    //ReportCorruption(scratch->size(), "partial record without end(1)");
+                }
+                prospective_record_offset = physical_record_offset;
+                scratch = fragment;
+                in_fragmented_record = true;
+                break;
+            }
+
+            if record_type == log_format::RecordType::kMiddleType as isize
+                || record_type == log_format::RecordType::kRecyclableMiddleType as isize
+            {
+                if (in_fragmented_record) {
+                    // Handle bug in earlier versions of log::Writer where
+                    // it could emit an empty kFirstType record at the tail end
+                    // of a block followed by a kFullType or kFirstType record
+                    // at the beginning of the next block.
+                    //ReportCorruption(scratch->size(), "partial record without end(1)");
+                } else {
+                    scratch.append(&mut fragment);
+                }
+                break;
+            }
+
+            if record_type == log_format::RecordType::kLastType as isize
+                || record_type == log_format::RecordType::kRecyclableLastType as isize
+            {
+                if (in_fragmented_record) {
+                    // Handle bug in earlier versions of log::Writer where
+                    // it could emit an empty kFirstType record at the tail end
+                    // of a block followed by a kFullType or kFirstType record
+                    // at the beginning of the next block.
+                    //ReportCorruption(scratch->size(), "partial record without end(1)");
+                } else {
+                    scratch.append(&mut fragment);
+                    record = fragment.clone();
+                    self.last_record_offset_ = prospective_record_offset;
+                    return true;
+                }
+                break;
+            }
         }
         return false;
+    }
+
+    fn readPhysicalRecord(&mut self, fragment: &mut Vec<u8>, drop_size: &mut usize) -> isize {
+        while (true) {}
+        return 0;
     }
 
     //fn ReportDrop(bytes: usize, reason: state) {}
