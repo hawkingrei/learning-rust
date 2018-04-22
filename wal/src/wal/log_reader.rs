@@ -270,6 +270,19 @@ impl Reader {
                 continue;
             }
         }
+        let a = self.buffer_[4] & 0xff;
+        let b = self.buffer_[5] & 0xff;
+        let log_type = self.buffer_[6];
+        let length = a | (b << 8);
+        if (log_type >= log_format::RecordType::kRecyclableFullType as u8
+            && log_type <= log_format::RecordType::kRecyclableLastType as u8)
+        {
+            if (self.end_of_buffer_offset_ - self.buffer_.len() as u64 == 0) {
+                self.recycled_ = true;
+            }
+            let header_size = log_format::kRecyclableHeaderSize;
+            // We need enough for the larger header
+        }
         return 0;
     }
 
