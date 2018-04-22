@@ -28,6 +28,7 @@ pub enum RecordType {
 pub struct Reader {
     eof_: bool,
     buffer_: Vec<u8>,
+    backing_store_: Vec<u8>,
     read_error_: bool,
 
     // Offset of the file position indicator within the last block when an
@@ -46,6 +47,26 @@ pub struct Reader {
 }
 
 impl Reader {
+    fn new(
+        file: SequentialFileReader<PosixSequentialFile>,
+        initial_offset: u64,
+        log_num: u64,
+    ) -> Reader {
+        Reader {
+            eof_: false,
+            buffer_: Vec::new(),
+            backing_store_: Vec::with_capacity(log_format::kBlockSize),
+            eof_offset_: 0,
+            last_record_offset_: 0,
+            end_of_buffer_offset_: 0,
+            initial_offset_: initial_offset,
+            read_error_: false,
+            file_: file,
+            log_number_: log_num,
+            recycled_: false,
+        }
+    }
+
     fn SkipToInitialBlock(&mut self) -> bool {
         let initial_offset_in_block = self.initial_offset_ % kBlockSize as u64;
         let mut block_start_location = self.initial_offset_ - initial_offset_in_block;
@@ -255,6 +276,11 @@ impl Reader {
     fn readMore(&mut self, mut drop_size: &usize, mut error: &isize) -> bool {
         if (!self.eof_ && !self.read_error_) {
             self.buffer_.clear();
+            let s = self.file_.Read(
+                log_format::kBlockSize,
+                &mut self.buffer_,
+                &mut self.backing_store_,
+            );
             return true;
         }
         return true;

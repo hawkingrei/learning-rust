@@ -304,7 +304,7 @@ impl<T: SequentialFile> SequentialFileReader<T> {
         self.file_.Skip(n)
     }
 
-    fn Read(&mut self, n: usize, mut result: &mut Vec<u8>, mut scratch: &mut Vec<u8>) -> state {
+    pub fn Read(&mut self, n: usize, mut result: &mut Vec<u8>, mut scratch: &mut Vec<u8>) -> state {
         self.file_.Read(n, result, scratch)
     }
 }
