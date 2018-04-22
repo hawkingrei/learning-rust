@@ -273,7 +273,7 @@ impl Reader {
         return 0;
     }
 
-    fn readMore(&mut self, mut drop_size: &usize, mut error: &isize) -> bool {
+    fn readMore(&mut self, mut drop_size: &mut usize, mut error: &mut isize) -> bool {
         if (!self.eof_ && !self.read_error_) {
             self.buffer_.clear();
             let s = self.file_.Read(
@@ -281,9 +281,31 @@ impl Reader {
                 &mut self.buffer_,
                 &mut self.backing_store_,
             );
+            self.end_of_buffer_offset_ += self.buffer_.len() as u64;
+            if (!s.isOk()) {
+                self.buffer_.clear();
+                //ReportDrop(kBlockSize, status);
+                self.read_error_ = true;
+                *error = RecordType::kEof as isize;
+                return false;
+            } else {
+                if self.buffer_.len() < log_format::kBlockSize {
+                    self.eof_ = true;
+                    self.eof_offset_ = self.buffer_.len();
+                }
+            }
             return true;
+        } else {
+            if (self.buffer_.len() > 0) {
+                *drop_size = self.buffer_.len();
+                self.buffer_.clear();
+                *error = RecordType::kBadHeader as isize;
+                return false;
+            }
+            self.buffer_.clear();
+            *error = RecordType::kEof as isize;
+            return false;
         }
-        return true;
     }
 
     //fn ReportDrop(bytes: usize, reason: state) {}
