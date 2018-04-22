@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use libc;
 use std::cmp::min;
 use std::mem;
@@ -303,12 +304,7 @@ impl<T: SequentialFile> SequentialFileReader<T> {
         self.file_.Skip(n)
     }
 
-    fn Read(
-        &mut self,
-        n: usize,
-        mut result: &mut Vec<u8>,
-        mut scratch: *mut libc::c_void,
-    ) -> state {
+    fn Read(&mut self, n: usize, mut result: &mut Vec<u8>, mut scratch: &mut Vec<u8>) -> state {
         self.file_.Read(n, result, scratch)
     }
 }
