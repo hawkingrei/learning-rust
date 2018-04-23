@@ -33,6 +33,37 @@ pub fn EncodeFixed64(value: u64) -> [u8; 8] {
     }
 }
 
+pub fn DecodeFixed32(value: [u8; 4]) -> u32 {
+    let mut result: u32 = 0;
+    result = (result | value[0] as u32) << 4;
+    result = (result | value[1] as u32) << 4;
+    result = (result | value[2] as u32) << 4;
+    result = (result | value[3] as u32) << 4;
+    if cfg!(target_endian = "little") {
+        result.to_le()
+    } else {
+        result.to_be()
+    }
+}
+
+pub fn DecodeFixed64(value: [u8; 8]) -> u64 {
+    let mut result: u64 = 0;
+    result = (result | value[0] as u64) << 4;
+    result = (result | value[1] as u64) << 4;
+    result = (result | value[2] as u64) << 4;
+    result = (result | value[3] as u64) << 4;
+    result = (result | value[4] as u64) << 4;
+    result = (result | value[5] as u64) << 4;
+    result = (result | value[6] as u64) << 4;
+    result = (result | value[7] as u64) << 4;
+
+    if cfg!(target_endian = "little") {
+        result.to_le()
+    } else {
+        result.to_be()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Code {
     kOk = 0,
