@@ -41,7 +41,7 @@ pub struct Reader {
     // Offset of the first location past the end of buffer_.
     end_of_buffer_offset_: u64,
     initial_offset_: u64,
-    log_number_: u64,
+    log_number_: u32,
     recycled_: bool,
     file_: SequentialFileReader<PosixSequentialFile>,
 }
@@ -50,7 +50,7 @@ impl Reader {
     fn new(
         file: SequentialFileReader<PosixSequentialFile>,
         initial_offset: u64,
-        log_num: u64,
+        log_num: u32,
     ) -> Reader {
         Reader {
             eof_: false,
@@ -269,20 +269,38 @@ impl Reader {
                 }
                 continue;
             }
-        }
-        let a = self.buffer_[4] & 0xff;
-        let b = self.buffer_[5] & 0xff;
-        let log_type = self.buffer_[6];
-        let length = a | (b << 8);
-        if (log_type >= log_format::RecordType::kRecyclableFullType as u8
-            && log_type <= log_format::RecordType::kRecyclableLastType as u8)
-        {
-            if (self.end_of_buffer_offset_ - self.buffer_.len() as u64 == 0) {
-                self.recycled_ = true;
+
+            let a = self.buffer_[4] & 0xff;
+            let b = self.buffer_[5] & 0xff;
+            let log_type = self.buffer_[6];
+            let length = a | (b << 8);
+            if (log_type >= log_format::RecordType::kRecyclableFullType as u8
+                && log_type <= log_format::RecordType::kRecyclableLastType as u8)
+            {
+                if (self.end_of_buffer_offset_ - self.buffer_.len() as u64 == 0) {
+                    self.recycled_ = true;
+                }
+                let header_size = log_format::kRecyclableHeaderSize;
+                // We need enough for the larger header
+                if (self.buffer_.len() < log_format::kRecyclableHeaderSize) {
+                    let mut r = 0;
+                    if (!self.readMore(&mut drop_size, &mut r)) {
+                        return r;
+                    }
+                    continue;
+                }
+                let log_num = wal::DecodeFixed32([
+                    self.buffer_[7],
+                    self.buffer_[8],
+                    self.buffer_[9],
+                    self.buffer_[10],
+                ]);
+                if (log_num != self.log_number_) {
+                    return RecordType::kOldRecord as isize;
+                }
             }
-            let header_size = log_format::kRecyclableHeaderSize;
-            // We need enough for the larger header
         }
+
         return 0;
     }
 
