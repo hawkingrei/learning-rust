@@ -125,7 +125,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         if (s.isOk()) {
-            self.filesize_ = slice.as_slice().len();
+            self.filesize_ += slice.len();
         }
         state::ok()
     }

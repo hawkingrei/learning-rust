@@ -175,17 +175,14 @@ impl WritableFile for PosixWritableFile {
 
     fn append(&mut self, data: Vec<u8>) -> state {
         let state: isize;
+        println!("write {:?}", data);
         unsafe {
-            state = libc::write(
-                self.fd_,
-                data.as_ptr() as *const libc::c_void,
-                mem::size_of_val(data.as_slice()),
-            );
+            state = libc::write(self.fd_, data.as_ptr() as *const libc::c_void, data.len());
         }
         if state < 0 {
             return state::new(Code::kIOError, "cannot append".to_string(), "".to_string());
         }
-        self.filesize_ += mem::size_of_val(data.as_slice());
+        self.filesize_ += data.len();
         return state::ok();
     }
 
