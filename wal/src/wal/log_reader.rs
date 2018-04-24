@@ -43,6 +43,7 @@ pub struct Reader {
     initial_offset_: u64,
     log_number_: u32,
     recycled_: bool,
+    checksum_: bool,
     file_: SequentialFileReader<PosixSequentialFile>,
 }
 
@@ -51,11 +52,13 @@ impl Reader {
         file: SequentialFileReader<PosixSequentialFile>,
         initial_offset: u64,
         log_num: u32,
+        checksum: bool,
     ) -> Reader {
         Reader {
             eof_: false,
             buffer_: Vec::new(),
             backing_store_: Vec::with_capacity(log_format::kBlockSize),
+            checksum_: checksum,
             eof_offset_: 0,
             last_record_offset_: 0,
             end_of_buffer_offset_: 0,
@@ -273,14 +276,15 @@ impl Reader {
             let a = self.buffer_[4] & 0xff;
             let b = self.buffer_[5] & 0xff;
             let log_type = self.buffer_[6];
-            let length = a | (b << 8);
+            let length: usize = (a as usize) | ((b as usize) << 8);
+            let mut header_size = log_format::kHeaderSize;
             if (log_type >= log_format::RecordType::kRecyclableFullType as u8
                 && log_type <= log_format::RecordType::kRecyclableLastType as u8)
             {
                 if (self.end_of_buffer_offset_ - self.buffer_.len() as u64 == 0) {
                     self.recycled_ = true;
                 }
-                let header_size = log_format::kRecyclableHeaderSize;
+                header_size = log_format::kRecyclableHeaderSize;
                 // We need enough for the larger header
                 if (self.buffer_.len() < log_format::kRecyclableHeaderSize) {
                     let mut r = 0;
@@ -298,6 +302,30 @@ impl Reader {
                 if (log_num != self.log_number_) {
                     return RecordType::kOldRecord as isize;
                 }
+            }
+            if (header_size + length > self.buffer_.len()) {
+                *drop_size = self.buffer_.len();
+                self.buffer_.clear();
+                if (!self.eof_) {
+                    return RecordType::kBadRecordLen as isize;
+                }
+                // If the end of the file has been reached without reading |length| bytes
+                // of payload, assume the writer died in the middle of writing the record.
+                // Don't report a corruption unless requested.
+                if (*drop_size > 0) {
+                    return RecordType::kBadHeader as isize;
+                }
+                return RecordType::kEof as isize;
+            }
+
+            if (log_type == log_format::RecordType::kZeroType as u8 && length == 0) {
+                // Skip zero length record without reporting any drops since
+                // such records are produced by the mmap based writing code in
+                // env_posix.cc that preallocates file regions.
+                // NOTE: this should never happen in DB written by new RocksDB versions,
+                // since we turn off mmap writes to manifest and log files
+                self.buffer_.clear();
+                return RecordType::kBadRecord as isize;
             }
         }
 
