@@ -232,25 +232,10 @@ fn test_aligned_buffer2() {
     let mut buf: AlignedBuffer = Default::default();
     buf.alignment(4);
     buf.allocate_new_buffer(100, false);
-    let appended = buf.append(
-        vec![
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
-            26,
-        ],
-        vec![
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
-            26,
-        ].len(),
-    );
+    let appended = buf.append(vec![1, 2, 3, 4, 5, 6], vec![1, 2, 3, 4, 5, 6].len());
     let result = buf.read(1, appended - 1);
-    assert_eq!(result.len(), 24);
+    assert_eq!(result.len(), 5);
     unsafe {
-        assert_eq!(
-            result,
-            vec![
-                2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
-                26,
-            ]
-        );
+        assert_eq!(result, vec![2, 3, 4, 5, 6]);
     }
 }

@@ -2,7 +2,7 @@ use hash::crc32;
 use std::mem;
 use wal;
 use wal::file_reader_writer::WritableFileWriter;
-use wal::log_format::{RecordType, kBlockSize, kHeaderSize, kMaxRecordType, kRecyclableHeaderSize};
+use wal::log_format::{kBlockSize, kHeaderSize, kMaxRecordType, kRecyclableHeaderSize, RecordType};
 use wal::state;
 
 #[derive(Debug)]
@@ -13,6 +13,12 @@ pub struct Write<T: wal::WritableFile> {
     recycle_log_files_: bool,
     manual_flush_: bool,
     type_crc_: Vec<u32>,
+}
+
+impl<T: wal::WritableFile> Drop for Write<T> {
+    fn drop(&mut self) {
+        self.dest_.close();
+    }
 }
 
 impl<T: wal::WritableFile> Write<T> {
@@ -42,15 +48,14 @@ impl<T: wal::WritableFile> Write<T> {
         size_t left = slice.size();
         */
         let mut ptr = slice.as_slice();
-        let mut left = mem::size_of_val(&slice.as_slice());
+        let mut left = slice.len();
         let header_size = if self.recycle_log_files_ {
             kRecyclableHeaderSize
         } else {
             kHeaderSize
         };
-
+        let mut begin = true;
         loop {
-            let mut begin = true;
             let fragment_length: usize;
             let leftover: usize = kBlockSize - self.block_offset_;
             assert!(leftover >= 0);
@@ -58,11 +63,14 @@ impl<T: wal::WritableFile> Write<T> {
             if (leftover < header_size) {
                 if (leftover > 0) {
                     assert!(header_size <= 11);
-                    self.dest_.append(
+                    let s = self.dest_.append(
                         vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
                             [..leftover]
                             .to_vec(),
                     );
+                    if (!s.isOk()) {
+                        break;
+                    }
                 }
                 self.block_offset_ = 0;
             }
@@ -97,11 +105,12 @@ impl<T: wal::WritableFile> Write<T> {
                     RecordType::kMiddleType
                 };
             };
-            self.emit_physical_record(rtype, ptr.to_vec(), fragment_length);
+            println!("{:?} {}", ptr.to_vec(), fragment_length);
+            let s = self.emit_physical_record(rtype, ptr.to_vec(), fragment_length);
             ptr = &ptr[fragment_length..];
             left -= fragment_length;
             begin = false;
-            if left <= 0 {
+            if !(s.isOk() && left > 0) {
                 break;
             }
         }
@@ -133,8 +142,10 @@ impl<T: wal::WritableFile> Write<T> {
 
         let mut s = self.dest_.append(buf[..header_size].to_vec());
         if s.isOk() {
+            println!("139 ok");
             s = self.dest_.append(ptr);
             if s.isOk() {
+                println!("142 ok");
                 if self.manual_flush_ {
                     s = self.dest_.flush()
                 }

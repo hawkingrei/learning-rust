@@ -51,7 +51,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut s: state = state::ok();
         let mut src = 0;
         let mut ptr = slice.as_slice();
-        let mut left = slice.as_slice().len();
+        let mut left = slice.len();
         self.pending_sync_ = true;
         {
             let fsize = self.get_file_size();
@@ -108,6 +108,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 println!("f left {}", left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
                 println!("f left {} {:?} ", left, slice[src..].to_vec());
+                println!("cap {} left {}", self.buf_.get_current_size(), left);
+                println!("appened {}", appended);
                 left -= appended;
                 src += appended;
                 if (left > 0) {
@@ -133,14 +135,21 @@ impl<T: WritableFile> WritableFileWriter<T> {
     }
 
     pub fn flush(&mut self) -> state {
-        let mut s: state;
+        let mut s: state = state::new(Code::kCorruption, String::from(""), String::from(""));
         if (self.buf_.get_current_size() > 0) {
-            if cfg!(not(feature = "CIBO_LITE")) {
-                s = self.write_direct();
+            if (self.writable_file_.use_direct_io()) {
+                if cfg!(not(feature = "CIBO_LITE")) {
+                    s = self.write_direct();
+                }
+            } else {
+                let buf_len = self.buf_.get_current_size();
+                let read_result = self.buf_.read(0, buf_len);
+                println!("write buffered {:?} {}", read_result, buf_len);
+                s = self.write_buffered(read_result, buf_len);
             }
-        } else {
-            //println!("write buffered")
-            //self.write_buffered(self.buf_,self.buf_.get_current_size());
+            if (!s.isOk()) {
+                return s;
+            }
         }
         s = self.writable_file_.flush();
         if (!s.isOk()) {
@@ -212,7 +221,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
         state::ok()
     }
 
-    fn close(&mut self) -> state {
+    pub fn close(&mut self) -> state {
         let mut s: state;
         if (!self.writable_file_.fcntl()) {
             s = state::new(
