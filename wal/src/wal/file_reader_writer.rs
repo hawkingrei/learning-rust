@@ -143,7 +143,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 }
             } else {
                 let buf_len = self.buf_.get_current_size();
-                let read_result = self.buf_.read(0, buf_len);
+                let buf_start = self.buf_.buffer_start();
+                let read_result = self.buf_.read(buf_start, buf_len);
                 println!("write buffered {:?} {}", read_result, buf_len);
                 s = self.write_buffered(read_result, buf_len);
             }

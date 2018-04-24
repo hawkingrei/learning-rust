@@ -102,20 +102,22 @@ impl AlignedBuffer {
         to_copy
     }
 
-    pub fn read(&mut self, offset: usize, read_size: usize) -> Vec<u8> {
+    pub fn read(&mut self, offset: *mut u8, read_size: usize) -> Vec<u8> {
         let mut result = vec![0; read_size];
         let mut to_read = 0;
-        if (offset < self.cursize_) {
-            to_read = min(self.cursize_ - offset, read_size);
+        if (self.buf_.ptr().offset_to(offset).unwrap() < self.cursize_ as isize) {
+            to_read = min(
+                self.cursize_ - self.buf_.ptr().offset_to(offset).unwrap() as usize,
+                read_size,
+            );
         }
         if (to_read > 0) {
             unsafe {
-                ptr::copy_nonoverlapping(
-                    self.bufstart_.offset(offset as isize),
-                    result.as_mut_ptr(),
-                    to_read,
-                );
+                ptr::copy_nonoverlapping(offset, result.as_mut_ptr(), to_read);
             }
+        }
+        unsafe {
+            self.bufstart_ = self.bufstart_.offset(read_size as isize);
         }
         result
     }
@@ -220,9 +222,11 @@ fn test_aligned_buffer() {
         String::from("abc").into_bytes(),
         String::from("abc").into_bytes().len(),
     );
-    let result = buf.read(1, appended - 1);
-    assert_eq!(result.len(), 2);
+    let offset;
     unsafe {
+        offset = buf.buffer_start().offset(1);
+        let result = buf.read(offset, appended - 1);
+        assert_eq!(result.len(), 2);
         assert_eq!(String::from_utf8_unchecked(result), String::from("bc"));
     }
 }
@@ -233,9 +237,15 @@ fn test_aligned_buffer2() {
     buf.alignment(4);
     buf.allocate_new_buffer(100, false);
     let appended = buf.append(vec![1, 2, 3, 4, 5, 6], vec![1, 2, 3, 4, 5, 6].len());
-    let result = buf.read(1, appended - 1);
-    assert_eq!(result.len(), 5);
+    let mut offset;
     unsafe {
-        assert_eq!(result, vec![2, 3, 4, 5, 6]);
+        offset = buf.buffer_start();
+        let result = buf.read(offset, 2);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result, vec![1, 2]);
+        offset = buf.buffer_start();
+        let result = buf.read(offset, 3);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result, vec![3, 4, 5]);
     }
 }
