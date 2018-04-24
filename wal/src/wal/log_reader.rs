@@ -1,3 +1,4 @@
+use hash::crc32;
 use wal;
 use wal::env;
 use wal::file_reader_writer::SequentialFileReader;
@@ -262,7 +263,7 @@ impl Reader {
         return false;
     }
 
-    fn readPhysicalRecord(&mut self, fragment: &mut Vec<u8>, mut drop_size: &mut usize) -> isize {
+    fn readPhysicalRecord(&mut self, mut result: &mut Vec<u8>, mut drop_size: &mut usize) -> isize {
         while (true) {
             // We need at least the minimum header size
             if (self.buffer_.len() < log_format::kHeaderSize) {
@@ -327,8 +328,40 @@ impl Reader {
                 self.buffer_.clear();
                 return RecordType::kBadRecord as isize;
             }
-        }
 
+            if (self.checksum_) {
+                let expected_crc = wal::DecodeFixed32([
+                    self.buffer_[0],
+                    self.buffer_[1],
+                    self.buffer_[2],
+                    self.buffer_[3],
+                ]);
+                let actual_crc = crc32(0, &self.buffer_[6..length + header_size]); //?
+                if (actual_crc != expected_crc) {
+                    // Drop the rest of the buffer since "length" itself may have
+                    // been corrupted and if we trust it, we could find some
+                    // fragment of a real log record that just happens to look
+                    // like a valid log record.
+                    *drop_size = self.buffer_.len();
+                    self.buffer_.clear();
+                    return RecordType::kBadRecordChecksum as isize;
+                }
+            }
+            self.buffer_ = self.buffer_[header_size + length..].to_vec();
+            if ((self.end_of_buffer_offset_ - self.buffer_.len() as u64 - header_size as u64
+                - length as u64) < self.initial_offset_)
+            {
+                result.clear();
+                return RecordType::kBadHeader as isize;
+            }
+
+            let result = &mut self.buffer_
+                .get(header_size - 1..header_size - 1 + length)
+                .unwrap()
+                .to_vec();
+
+            return log_type as isize;
+        }
         return 0;
     }
 
