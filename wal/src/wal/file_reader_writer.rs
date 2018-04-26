@@ -261,36 +261,43 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let alignment: usize = self.buf_.get_alignment();
         assert!((self.next_write_offset_ % alignment) == 0);
         let file_advance = truncate_to_page_boundary(alignment, self.buf_.get_current_size());
+
         let leftover_tail = self.buf_.get_current_size() - file_advance;
         self.buf_.pad_to_aligment_with(0);
 
         let mut src = self.buf_.buffer_start();
+        println!("pl write get src {:?}", src);
         let mut write_offset = self.next_write_offset_;
         let mut left = self.buf_.get_current_size();
-        while (left > 0) {
-            //rate_limiter
-            println!("pl write");
-            let mut size = left;
+        println!("pl write get left {:?}", left);
+        unsafe {
+            while (left > 0) {
+                //rate_limiter
+                println!("pl write");
+                let mut size = left;
+                println!("pl write size {:?}", size);
+                println!("pl write src {:?}", src);
+                let mut write_context = vec![0; size];
+                write_context = self.buf_.read(src, size);
 
-            let mut write_context = vec![0; size];
-            unsafe {
-                ptr::copy_nonoverlapping(src, write_context.as_mut_ptr(), size);
-            }
+                println!("write direct {:?}", write_context);
 
-            s = self.writable_file_
-                .positioned_append(write_context, write_offset);
-            if (!s.isOk()) {
-                self.buf_.size(file_advance + leftover_tail);
-                return s;
+                s = self.writable_file_
+                    .positioned_append(write_context, write_offset);
+                if (!s.isOk()) {
+                    self.buf_.size(file_advance + leftover_tail);
+                    return s;
+                }
+                left -= size;
+
+                let mut src = src.offset(size as isize);
+
+                println!("pl write src after change {:?}", src);
+                write_offset += size;
+                assert!((self.next_write_offset_ % alignment) == 0);
             }
-            left -= size;
-            unsafe {
-                src = src.offset(size as isize);
-            }
-            write_offset += size;
-            assert!((self.next_write_offset_ % alignment) == 0);
         }
-
+        println!("pl write end");
         if (s.isOk()) {
             self.buf_.refit_tail(file_advance, leftover_tail);
             self.next_write_offset_ += file_advance;
@@ -300,11 +307,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
 }
 
 impl<T: WritableFile> Drop for WritableFileWriter<T> {
-    fn drop(&mut self) {
-        unsafe {
-            self.close();
-        }
-    }
+    fn drop(&mut self) {}
 }
 
 #[derive(Debug)]

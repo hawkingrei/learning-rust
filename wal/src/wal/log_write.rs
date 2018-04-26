@@ -105,11 +105,12 @@ impl<T: wal::WritableFile> Write<T> {
                     RecordType::kMiddleType
                 };
             };
-            println!("{:?} {}", ptr.to_vec(), fragment_length);
+            println!("{:?} {} rtype {:?}", ptr.to_vec(), fragment_length, rtype);
             let s = self.emit_physical_record(rtype, ptr.to_vec(), fragment_length);
             ptr = &ptr[fragment_length..];
             left -= fragment_length;
             begin = false;
+
             if !(s.isOk() && left > 0) {
                 break;
             }
@@ -142,11 +143,10 @@ impl<T: wal::WritableFile> Write<T> {
 
         let mut s = self.dest_.append(buf[..header_size].to_vec());
         if s.isOk() {
-            println!("139 ok");
             s = self.dest_.append(ptr);
             if s.isOk() {
-                println!("142 ok");
                 if self.manual_flush_ {
+                    println!("we use manual_flush");
                     s = self.dest_.flush()
                 }
             }

@@ -173,6 +173,5 @@ fn test_wal() {
     let mut wal = Write::new(writer, 0, false, true);
 
     let input = vec![1, 2, 3, 4, 5, 6, 7, 8];
-    println!("input len {} {:?}", input.len(), input);
     wal.add_record(input);
 }

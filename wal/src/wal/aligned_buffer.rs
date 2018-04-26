@@ -243,6 +243,8 @@ fn test_aligned_buffer2() {
         let result = buf.read(offset, 2);
         assert_eq!(result.len(), 2);
         assert_eq!(result, vec![1, 2]);
+    }
+    unsafe {
         offset = buf.buffer_start();
         let result = buf.read(offset, 3);
         assert_eq!(result.len(), 3);
