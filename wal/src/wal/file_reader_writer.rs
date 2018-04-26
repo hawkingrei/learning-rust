@@ -279,7 +279,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
 
                 //println!(
                 //    "write direct {:?} write_offset {}",
-                //   write_context, write_offset
+                //    write_context, write_offset
                 //);
 
                 s = self.writable_file_
@@ -304,7 +304,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 self.next_write_offset_
             );
             self.buf_.refit_tail(file_advance, leftover_tail);
-            self.next_write_offset_ += file_advance;
+            self.next_write_offset_ = file_advance;
             println!(
                 "pl write get next write_offset {:?}",
                 self.next_write_offset_

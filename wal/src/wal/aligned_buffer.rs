@@ -31,7 +31,7 @@ pub struct AlignedBuffer {
 impl Default for AlignedBuffer {
     fn default() -> Self {
         AlignedBuffer {
-            alignment_: 4,
+            alignment_: 4 * 1024,
             buf_: RawVec::with_capacity(1),
             capacity_: 1,
             cursize_: 0,
@@ -249,5 +249,30 @@ fn test_aligned_buffer2() {
         let result = buf.read(offset, 3);
         assert_eq!(result.len(), 3);
         assert_eq!(result, vec![3, 4, 5]);
+    }
+}
+
+#[test]
+fn test_aligned_buffer3() {
+    let mut buf: AlignedBuffer = Default::default();
+    buf.alignment(4);
+    buf.allocate_new_buffer(100, false);
+    let appended = buf.append(vec![1, 2, 3, 4, 5, 6], 6);
+    assert_eq!(appended, 6);
+
+    let mut offset;
+    unsafe {
+        offset = buf.buffer_start();
+        let result = buf.read(offset, 6);
+        assert_eq!(result.len(), 6);
+        assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
+    }
+    let appended = buf.append(vec![1, 2, 3, 4, 5, 6], 6);
+    assert_eq!(appended, 6);
+    unsafe {
+        offset = buf.buffer_start();
+        let result = buf.read(offset, 6);
+        assert_eq!(result.len(), 6);
+        assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
     }
 }
