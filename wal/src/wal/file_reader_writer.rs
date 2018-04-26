@@ -32,7 +32,7 @@ pub struct WritableFileWriter<T: WritableFile> {
 impl<T: WritableFile> WritableFileWriter<T> {
     pub fn new(writable_file: T, options: EnvOptions) -> WritableFileWriter<T> {
         let mut buf: AlignedBuffer = Default::default();
-        buf.alignment(4);
+        buf.alignment(4 * 1024);
         buf.allocate_new_buffer(65536, false);
         WritableFileWriter {
             writable_file_: writable_file,
@@ -229,7 +229,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
     }
 
     pub fn close(&mut self) -> state {
-        let mut s: state;
+        let mut s: state = state::ok();
         if (!self.writable_file_.fcntl()) {
             s = state::new(
                 Code::kIOError,
@@ -239,7 +239,7 @@ impl<T: WritableFile> WritableFileWriter<T> {
             return s;
         }
 
-        s = self.flush();
+        //s = self.flush();
         println!("FIILESIZE {}", self.filesize_);
         let mut interim: state;
         if (self.writable_file_.use_direct_io()) {
@@ -260,14 +260,19 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut s: state = state::ok();
         let alignment: usize = self.buf_.get_alignment();
         assert!((self.next_write_offset_ % alignment) == 0);
+        println!("pl write get alignment  {:?}", alignment);
+        println!("buf_ size {}", self.buf_.get_current_size());
         let file_advance = truncate_to_page_boundary(alignment, self.buf_.get_current_size());
+        println!("pl write get file_advance  {:?}", file_advance);
 
         let leftover_tail = self.buf_.get_current_size() - file_advance;
+        println!("pl leftover_tail {:?}", leftover_tail);
         self.buf_.pad_to_aligment_with(0);
 
         let mut src = self.buf_.buffer_start();
         println!("pl write get src {:?}", src);
         let mut write_offset = self.next_write_offset_;
+        println!("pl write get write_offset {:?}", write_offset);
         let mut left = self.buf_.get_current_size();
         println!("pl write get left {:?}", left);
         unsafe {
@@ -280,7 +285,10 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 let mut write_context = vec![0; size];
                 write_context = self.buf_.read(src, size);
 
-                println!("write direct {:?}", write_context);
+                //println!(
+                //    "write direct {:?} write_offset {}",
+                //   write_context, write_offset
+                //);
 
                 s = self.writable_file_
                     .positioned_append(write_context, write_offset);
@@ -299,8 +307,16 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
         println!("pl write end");
         if (s.isOk()) {
+            println!(
+                "pl write get next write_offset {:?}",
+                self.next_write_offset_
+            );
             self.buf_.refit_tail(file_advance, leftover_tail);
             self.next_write_offset_ += file_advance;
+            println!(
+                "pl write get next write_offset {:?}",
+                self.next_write_offset_
+            );
         }
         s
     }

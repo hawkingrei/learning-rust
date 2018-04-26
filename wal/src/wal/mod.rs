@@ -172,6 +172,6 @@ fn test_wal() {
     let mut writer = WritableFileWriter::new(fd, op);
     let mut wal = Write::new(writer, 0, false, true);
 
-    let input = vec![1, 2, 3, 4, 5, 6, 7, 8];
+    let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
     wal.add_record(input);
 }
