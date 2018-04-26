@@ -1,0 +1,8 @@
+[package]
+name = "gif-resize"
+version = "0.1.0"
+authors = ["zhenren <wangweizhen@bilibili.com>"]
+
+[dependencies]
+cv = { git = "https://github.com/nebgnahz/cv-rs.git" }
+gif = "0.10.0"
