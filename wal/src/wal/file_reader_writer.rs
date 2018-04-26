@@ -145,7 +145,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
                 let buf_len = self.buf_.get_current_size();
                 let buf_start = self.buf_.buffer_start();
                 let read_result = self.buf_.read(buf_start, buf_len);
-                println!("write buffered {:?} {}", read_result, buf_len);
                 s = self.write_buffered(read_result, buf_len);
             }
             if (!s.isOk()) {
@@ -169,7 +168,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
         // Xfs does neighbor page flushing outside of the specified ranges. We
         // need to make sure sync range is far from the write offset.
         if (!self.writable_file_.use_direct_io() && self.bytes_per_sync_ > 0) {
-            println!("fuckfuck");
             let k_bytes_not_sync_range: usize = 1024 * 1024;
             let k_bytes_align_when_sync: usize = 4 * 1024;
             if (self.filesize_ > k_bytes_not_sync_range) {
@@ -200,7 +198,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
         assert!(self.writable_file_.use_direct_io());
         let mut src = 0;
         let mut left = size;
-        println!("write buffered {} {:?}", left, data);
         while (left > 0) {
             let mut allowed;
 
@@ -211,11 +208,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
             // } else {
             allowed = left;
             // }
-            println!(
-                "writing buffered {} {:?}",
-                left,
-                data[src..src + left].to_vec()
-            );
             s = self.writable_file_.append(data[src..src + left].to_vec());
             if (!s.isOk()) {
                 return s;
