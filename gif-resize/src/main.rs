@@ -20,7 +20,7 @@ fn main() {
     let mut input = Vec::new();
     f.read_to_end(&mut input).unwrap();
     let mut decoder = gif::Decoder::new(&*input);
-
+    decoder.set(gif::ColorOutput::RGBA);
     let sys_time = SystemTime::now();
     let mut decoder = decoder.read_info().unwrap();
     let nframe = Frame::default();
