@@ -116,9 +116,10 @@ impl AlignedBuffer {
                 ptr::copy_nonoverlapping(offset, result.as_mut_ptr(), to_read);
             }
         }
-        unsafe {
-            self.bufstart_ = self.bufstart_.offset(read_size as isize);
-        }
+        //unsafe {
+        //    self.bufstart_ = self.bufstart_.offset(read_size as isize);
+        //}
+        //self.cursize_ = self.cursize_ - read_size;
         result
     }
 
@@ -246,7 +247,7 @@ fn test_aligned_buffer2() {
     }
     unsafe {
         offset = buf.buffer_start();
-        let result = buf.read(offset, 3);
+        let result = buf.read(offset.offset(2), 3);
         assert_eq!(result.len(), 3);
         assert_eq!(result, vec![3, 4, 5]);
     }
@@ -274,10 +275,10 @@ fn test_aligned_buffer3() {
 
     let appended = buf.append(vec![1, 2, 3, 4, 5, 6, 7], 7);
     println!("buf {:?}", buf);
-    assert_eq!(appended, 6);
+    assert_eq!(appended, 7);
     unsafe {
         offset = buf.buffer_start();
-        let result = buf.read(offset, 7);
+        let result = buf.read(offset.offset(6), 7);
         assert_eq!(result.len(), 7);
         assert_eq!(result, vec![1, 2, 3, 4, 5, 6, 7]);
     }
