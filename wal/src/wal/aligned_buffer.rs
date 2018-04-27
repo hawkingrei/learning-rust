@@ -258,6 +258,8 @@ fn test_aligned_buffer3() {
     buf.alignment(4);
     buf.allocate_new_buffer(100, false);
     let appended = buf.append(vec![1, 2, 3, 4, 5, 6], 6);
+    println!("buf {:?}", buf);
+    println!("buf ptr {:?}", buf.buffer_start());
     assert_eq!(appended, 6);
 
     let mut offset;
@@ -267,12 +269,16 @@ fn test_aligned_buffer3() {
         assert_eq!(result.len(), 6);
         assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
     }
-    let appended = buf.append(vec![1, 2, 3, 4, 5, 6], 6);
+
+    println!("buf ptr {:?}", buf.buffer_start());
+
+    let appended = buf.append(vec![1, 2, 3, 4, 5, 6, 7], 7);
+    println!("buf {:?}", buf);
     assert_eq!(appended, 6);
     unsafe {
         offset = buf.buffer_start();
-        let result = buf.read(offset, 6);
-        assert_eq!(result.len(), 6);
-        assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
+        let result = buf.read(offset, 7);
+        assert_eq!(result.len(), 7);
+        assert_eq!(result, vec![1, 2, 3, 4, 5, 6, 7]);
     }
 }
