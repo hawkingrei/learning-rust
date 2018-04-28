@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["zhenren <wangweizhen@bilibili.com>"]
 
 [dependencies]
-cv = { git = "https://github.com/nebgnahz/cv-rs.git" }
+cv = { git = "https://github.com/hawkingrei/cv-rs.git" }
 gif = "0.10.0"

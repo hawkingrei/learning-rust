@@ -1,4 +1,9 @@
+extern crate cv;
 extern crate gif;
+
+use cv::*;
+use cv::core::*;
+use cv::imgproc::*;
 use gif::Frame;
 use gif::SetParameter;
 use std::env;
@@ -9,12 +14,12 @@ use std::io::Read;
 use std::io::Write;
 use std::time::SystemTime;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let metadata = match fs::metadata(&args[1]) {
-        Ok(x) => x.len(),
-        Err(_) => 0,
-    };
+fn main() {    
+    let args: Vec<String> = env::args().collect();    
+    let metadata = match fs::metadata(&args[1]) {        
+        Ok(x) => x.len(),        
+        Err(_) => 0,    
+    };    
     let mut f = File::open(&args[1]).unwrap();
 
     let mut input = Vec::new();
@@ -30,13 +35,15 @@ fn main() {
     //File::create(&args[1].replace(".gif", "_1.gif")).unwrap();
     {
         let readimage = &mut image;
+        let width = decoder.width();
+        let height = decoder.height();
         println!("{}", decoder.width());
         println!("{}", decoder.height());
         let mut encoder = gif::Encoder::new(
             //&mut image,
             readimage,
-            decoder.width(),
-            decoder.height(),
+            width,
+          height,
             match decoder.global_palette() {
                 // The division was valid
                 Some(x) => &x,
@@ -46,6 +53,9 @@ fn main() {
         ).unwrap();
         match decoder.read_next_frame().unwrap() {
             Some(frame) => {
+                
+                let mat = Mat::from_buffer(height as i32, width as i32, CvType::Cv8UC3 as i32, &frame.buffer.clone().into_owned().to_vec());
+                mat.resize_to( Size2i::new(300,169),InterpolationFlag::InterNearst);
                 println!("{:?}", frame.buffer.len());
                 encoder.write_frame(&frame).unwrap();
             }
