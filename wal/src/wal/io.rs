@@ -392,7 +392,7 @@ impl SequentialFile for PosixSequentialFile {
             }
             flag = flag | get_flag_for_posix_sequential_file();
         }
-        flag = get_flag_for_posix_sequential_file();
+        //flag = get_flag_for_posix_sequential_file();
         loop {
             unsafe {
                 fd = libc::open(
@@ -403,6 +403,7 @@ impl SequentialFile for PosixSequentialFile {
                 if !(fd < 0) && *errno_location() as i32 == libc::EINTR {
                     break;
                 }
+                println!("{} {} {}", "wait for open", fd, *errno_location());
             }
         }
         if fd < 0 {
