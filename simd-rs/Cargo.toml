@@ -1,0 +1,7 @@
+[package]
+name = "simd-rs"
+version = "0.1.0"
+authors = ["真人 <weizhen.wang@duitang.com>"]
+
+[dependencies]
+stdsimd = "0.0.4"
