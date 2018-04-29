@@ -1,7 +1,9 @@
 #![feature(cfg_target_feature, target_feature)]
+#![feature(test)]
 
 #[macro_use]
 extern crate stdsimd;
+mod simd;
 use stdsimd::vendor;
 use stdsimd::simd::i32x4;
 
@@ -40,15 +42,13 @@ unsafe fn sum_sse2(x: i32x4) -> i32 {
 // CPUs at compile-time (does not perform any run-time
 // feature detection).
 fn sum_ct(x: i32x4) -> i32 {
-    #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"),
-              target_feature = "sse2"))]
+    #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"), target_feature = "sse2"))]
     {
         // This function is only available for x86/x86_64 targets,
         // and is only safe to call it if the target supports SSE2
         unsafe { sum_sse2(x) }
     }
-    #[cfg(not(all(any(target_arch = "x86_64", target_arch = "x86"),
-              target_feature = "sse2")))]
+    #[cfg(not(all(any(target_arch = "x86_64", target_arch = "x86"), target_feature = "sse2")))]
     {
         sum_portable(x)
     }
