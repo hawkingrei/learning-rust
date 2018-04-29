@@ -183,7 +183,6 @@ fn test_wal() {
         wal.add_record(input);
         let input = vec![1, 2];
         wal.add_record(input);
-        drop(wal);
     }
     {
         let mut pf: PosixSequentialFile = PosixSequentialFile::default();
