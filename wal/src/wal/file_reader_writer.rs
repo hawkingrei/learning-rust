@@ -328,6 +328,13 @@ pub struct SequentialFileReader<T: SequentialFile> {
 }
 
 impl<T: SequentialFile> SequentialFileReader<T> {
+    pub fn new(file: T) -> SequentialFileReader<T> {
+        SequentialFileReader {
+            file_: file,
+            offset_: AtomicIsize::new(0),
+        }
+    }
+
     pub fn Skip(&self, n: i64) -> state {
         self.file_.Skip(n)
     }

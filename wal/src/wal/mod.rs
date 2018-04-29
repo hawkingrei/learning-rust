@@ -11,7 +11,9 @@ use std::mem;
 use std::str;
 use wal;
 use wal::env::EnvOptions;
+use wal::file_reader_writer::SequentialFileReader;
 use wal::file_reader_writer::WritableFileWriter;
+use wal::io::PosixSequentialFile;
 use wal::io::PosixWritableFile;
 use wal::log_write::Write;
 
@@ -166,18 +168,25 @@ fn test_state() {
 
 #[test]
 fn test_wal() {
-    let mut fd = PosixWritableFile::new("test".to_string(), false, 1024);
-    let mut op: EnvOptions = EnvOptions::default();
-    op.writable_file_max_buffer_size = 50;
-    let mut writer = WritableFileWriter::new(fd, op);
-    let mut wal = Write::new(writer, 0, false, true);
+    {
+        let mut fd = PosixWritableFile::new("test".to_string(), false, 1024);
+        let mut op: EnvOptions = EnvOptions::default();
+        op.writable_file_max_buffer_size = 50;
+        let mut writer = WritableFileWriter::new(fd, op);
+        let mut wal = Write::new(writer, 0, false, true);
 
-    let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-    wal.add_record(input);
-    let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    wal.add_record(input);
-    let input = vec![1, 2, 3];
-    wal.add_record(input);
-    let input = vec![1, 2];
-    wal.add_record(input);
+        let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        wal.add_record(input);
+        let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        wal.add_record(input);
+        let input = vec![1, 2, 3];
+        wal.add_record(input);
+        let input = vec![1, 2];
+        wal.add_record(input);
+    }
+    {
+        let mut pf: PosixSequentialFile = PosixSequentialFile::default();
+        let mut op: EnvOptions = EnvOptions::default();
+        //let mut f = PosixSequentialFile::new("test".to_string(), op, &mut pf);
+    }
 }

@@ -365,8 +365,20 @@ pub struct PosixSequentialFile {
     file_: *mut libc::FILE,
 }
 
+impl Default for PosixSequentialFile {
+    fn default() -> PosixSequentialFile {
+        PosixSequentialFile {
+            filename_: "".to_string(),
+            fd_: 0,
+            use_direct_io_: true,
+            logical_sector_size_: 0,
+            file_: 0 as *mut libc::FILE,
+        }
+    }
+}
+
 impl SequentialFile for PosixSequentialFile {
-    fn new(filename: String, options: env::EnvOptions, ptr: &mut PosixSequentialFile) -> state {
+    fn new(filename: String, options: env::EnvOptions, mut ptr: &mut PosixSequentialFile) -> state {
         let mut fd = -1;
         let mut flag = libc::O_RDONLY;
         let mut file = 0 as *mut libc::FILE;
