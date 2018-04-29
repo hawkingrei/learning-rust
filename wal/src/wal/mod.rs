@@ -187,6 +187,7 @@ fn test_wal() {
     {
         let mut pf: PosixSequentialFile = PosixSequentialFile::default();
         let mut op: EnvOptions = EnvOptions::default();
-        let mut f = PosixSequentialFile::new("test".to_string(), op, &mut pf);
+        let mut state = PosixSequentialFile::new("test".to_string(), op, &mut pf);
+        let mut sf = SequentialFileReader::new(pf);
     }
 }
