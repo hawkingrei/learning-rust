@@ -15,6 +15,7 @@ use wal::file_reader_writer::SequentialFileReader;
 use wal::file_reader_writer::WritableFileWriter;
 use wal::io::PosixSequentialFile;
 use wal::io::PosixWritableFile;
+use wal::log_reader::Reader;
 use wal::log_write::Write;
 
 const k_default_page_size: usize = 4 * 1024;
@@ -189,5 +190,16 @@ fn test_wal() {
         let mut op: EnvOptions = EnvOptions::default();
         let mut state = PosixSequentialFile::new("test".to_string(), op, &mut pf);
         let mut sf = SequentialFileReader::new(pf);
+        let mut reader = Reader::new(sf, 0, 0, true);
+        let mut record: Vec<u8> = Vec::new();
+        let mut scratch: Vec<u8> = Vec::new();
+        {
+            reader.readRecord(
+                &mut record,
+                &mut scratch,
+                env::WALRecoveryMode::kAbsoluteConsistency,
+            );
+        }
+        assert_eq!(record, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     }
 }

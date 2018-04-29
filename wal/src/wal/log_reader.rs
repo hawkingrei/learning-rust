@@ -49,7 +49,7 @@ pub struct Reader {
 }
 
 impl Reader {
-    fn new(
+    pub fn new(
         file: SequentialFileReader<PosixSequentialFile>,
         initial_offset: u64,
         log_num: u32,
@@ -98,10 +98,10 @@ impl Reader {
     //
     // TODO krad: Evaluate if we need to move to a more strict mode where we
     // restrict the inconsistency to only the last log
-    fn readRecord(
+    pub fn readRecord(
         &mut self,
-        mut record: Vec<u8>,
-        mut scratch: Vec<u8>,
+        mut record: &mut Vec<u8>,
+        mut scratch: &mut Vec<u8>,
         wal_recovery_mode: env::WALRecoveryMode,
     ) -> bool {
         if self.last_record_offset_ < self.initial_offset_ {
@@ -117,7 +117,7 @@ impl Reader {
         let mut prospective_record_offset = 0;
 
         let mut fragment: Vec<u8> = Vec::new();
-        while true {
+        loop {
             let mut physical_record_offset = self.end_of_buffer_offset_ - self.buffer_.len() as u64;
             let mut drop_size: usize = 0;
             let record_type = self.readPhysicalRecord(&mut fragment, &mut drop_size);
@@ -135,7 +135,7 @@ impl Reader {
                 {
                     prospective_record_offset = physical_record_offset;
                     scratch.clear();
-                    record = fragment.clone();
+                    record.append(&mut fragment);
                     self.last_record_offset_ = prospective_record_offset;
                     return true;
                 }
@@ -152,7 +152,7 @@ impl Reader {
                     //ReportCorruption(scratch->size(), "partial record without end(1)");
                 }
                 prospective_record_offset = physical_record_offset;
-                scratch = fragment;
+                scratch.append(&mut fragment);
                 in_fragmented_record = true;
                 break;
             }
@@ -183,7 +183,7 @@ impl Reader {
                     //ReportCorruption(scratch->size(), "partial record without end(1)");
                 } else {
                     scratch.append(&mut fragment);
-                    record = fragment.clone();
+                    record.append(&mut fragment);
                     self.last_record_offset_ = prospective_record_offset;
                     return true;
                 }
@@ -251,14 +251,14 @@ impl Reader {
                     scratch.clear();
                 }
                 break;
+            } else {
+                //char buf[40];
+                //snprintf(buf, sizeof(buf), "unknown record type %u", record_type);
+                //ReportCorruption((fragment.size() + (in_fragmented_record ? scratch->size() : 0)),buf);
+                in_fragmented_record = false;
+                scratch.clear();
+                break;
             }
-
-            //char buf[40];
-            //snprintf(buf, sizeof(buf), "unknown record type %u", record_type);
-            //ReportCorruption((fragment.size() + (in_fragmented_record ? scratch->size() : 0)),buf);
-            in_fragmented_record = false;
-            scratch.clear();
-            break;
         }
         return false;
     }
