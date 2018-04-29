@@ -400,7 +400,7 @@ impl SequentialFile for PosixSequentialFile {
                     flag,
                     0o644,
                 );
-                if !(fd < 0) && *errno_location() as i32 == libc::EINTR {
+                if !(fd < 0 && *errno_location() as i32 == libc::EINTR) {
                     break;
                 }
                 println!("{} {} {}", "wait for open", fd, *errno_location());
