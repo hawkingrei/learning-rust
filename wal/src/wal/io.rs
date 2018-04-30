@@ -499,14 +499,16 @@ impl SequentialFile for PosixSequentialFile {
             result.split_off(r);
 
             if (r < n) {
+                println!("feof {}", libc::feof(self.file_));
                 if libc::feof(self.file_) == 0 {
-                    clearerr(self.file_);
-                } else {
                     s = state::new(
                         Code::kIOError,
                         "While reading file sequentially".to_string(),
                         "".to_string(),
                     );
+                } else {
+                    println!("clear eof err");
+                    clearerr(self.file_);
                 }
             }
         }
