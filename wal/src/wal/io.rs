@@ -475,26 +475,28 @@ impl SequentialFile for PosixSequentialFile {
 
     fn Read(&mut self, n: usize, mut result: &mut Vec<u8>, mut scratch: &mut Vec<u8>) -> state {
         let mut s: state = state::ok();
-        let r: usize = 0;
-        println!("file {:?}", self.file_);
+        let mut r = 0;
+        let mut scratch: Vec<u8> = vec![0; n];
         unsafe {
             loop {
-                let r = fread_unlocked(
+                r = fread_unlocked(
                     scratch.as_mut_ptr() as *mut libc::c_void,
                     1 as libc::size_t,
                     n as libc::size_t,
                     self.file_,
                 );
+
                 if !(libc::ferror(self.file_) > 0 && ((*errno_location()) as i32 == libc::EINTR)
                     && r == 0)
                 {
                     break;
                 }
             }
-            println!("read errno_location {:?}", *errno_location());
-            println!("scratch {:?}", scratch);
-            *result = scratch[..r].to_vec();
-            println!("result {:?}", result);
+            println!("fread result len  {:?}", scratch.len());
+            //println!("scratch {:?}", scratch);
+            result.extend_from_slice(scratch.as_slice());
+            println!("fread size {}", r);
+            result.split_off(r);
 
             if (r < n) {
                 if libc::feof(self.file_) == 0 {

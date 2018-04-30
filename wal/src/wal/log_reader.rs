@@ -382,17 +382,17 @@ impl Reader {
                 &mut self.buffer_,
                 &mut self.backing_store_,
             );
-            println!("readMore {:?}", self.buffer_);
+            println!("readMore buf len {}", self.buffer_.len());
             self.end_of_buffer_offset_ += self.buffer_.len() as u64;
             if (!s.isOk()) {
-                println!("read ok");
+                println!("read fail");
                 self.buffer_.clear();
                 //ReportDrop(kBlockSize, status);
                 self.read_error_ = true;
                 *error = RecordType::kEof as isize;
                 return false;
             } else {
-                println!("read fail");
+                println!("read ok");
                 if self.buffer_.len() < log_format::kBlockSize {
                     self.eof_ = true;
                     self.eof_offset_ = self.buffer_.len();
