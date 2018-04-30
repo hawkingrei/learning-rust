@@ -58,19 +58,8 @@ impl<T: WritableFile> WritableFileWriter<T> {
             self.writable_file_.prepare_write(fsize, left);
         }
         if (self.buf_.get_capacity() - self.buf_.get_current_size() < left) {
-            println!("1");
             let mut cap = self.buf_.get_capacity();
-            println!(
-                "cap {} max_buffer_size_ {} left {} ptr {:?}",
-                cap, self.max_buffer_size_, left, ptr
-            );
             while (cap < self.max_buffer_size_) {
-                println!(
-                    "cap {} max_buffer_size_ {} current_size() {}",
-                    cap,
-                    self.max_buffer_size_,
-                    self.buf_.get_current_size()
-                );
                 // See whether the next available size is large enough.
                 // Buffer will never be increased to more than max_buffer_size_.
                 let desired_capacity = min(cap * 2, self.max_buffer_size_);
@@ -101,15 +90,9 @@ impl<T: WritableFile> WritableFileWriter<T> {
         // We never write directly to disk with direct I/O on.
         // or we simply use it for its original purpose to accumulate many small
         // chunks
-        println!("cap {} left {}", self.buf_.get_capacity(), left);
         if (self.writable_file_.use_direct_io() || self.buf_.get_capacity() >= left) {
-            println!("3");
             while (left > 0) {
-                println!("f left {}", left);
                 let appended = self.buf_.append(slice[src..].to_vec(), left);
-                println!("f left {} {:?} ", left, slice[src..].to_vec());
-                println!("cap {} left {}", self.buf_.get_current_size(), left);
-                println!("appened {}", appended);
                 left -= appended;
                 src += appended;
                 if (left > 0) {
@@ -232,7 +215,6 @@ impl<T: WritableFile> WritableFileWriter<T> {
         }
 
         //s = self.flush();
-        println!("FIILESIZE {}", self.filesize_);
         let mut interim: state;
         if (self.writable_file_.use_direct_io()) {
             interim = self.writable_file_.truncate(self.filesize_);
@@ -252,35 +234,20 @@ impl<T: WritableFile> WritableFileWriter<T> {
         let mut s: state = state::ok();
         let alignment: usize = self.buf_.get_alignment();
         assert!((self.next_write_offset_ % alignment) == 0);
-        println!("pl write get alignment  {:?}", alignment);
-        println!("buf_ size {}", self.buf_.get_current_size());
         let file_advance = truncate_to_page_boundary(alignment, self.buf_.get_current_size());
-        println!("pl write get file_advance  {:?}", file_advance);
 
         let leftover_tail = self.buf_.get_current_size() - file_advance;
-        println!("pl leftover_tail {:?}", leftover_tail);
         self.buf_.pad_to_aligment_with(0);
 
         let mut src = self.buf_.buffer_start();
-        println!("pl write get src {:?}", src);
         let mut write_offset = self.next_write_offset_;
-        println!("pl write get write_offset {:?}", write_offset);
         let mut left = self.buf_.get_current_size();
-        println!("pl write get left {:?}", left);
         unsafe {
             while (left > 0) {
                 //rate_limiter
-                println!("pl write");
                 let mut size = left;
-                println!("pl write size {:?}", size);
-                println!("pl write src {:?}", src);
                 let mut write_context = vec![0; size];
                 write_context = self.buf_.read(src, size);
-
-                //println!(
-                //    "write direct {:?} write_offset {}",
-                //    write_context, write_offset
-                //);
 
                 s = self.writable_file_
                     .positioned_append(write_context, write_offset);
@@ -292,23 +259,13 @@ impl<T: WritableFile> WritableFileWriter<T> {
 
                 let mut src = src.offset(size as isize);
 
-                println!("pl write src after change {:?}", src);
                 write_offset += size;
                 assert!((self.next_write_offset_ % alignment) == 0);
             }
         }
-        println!("pl write end");
         if (s.isOk()) {
-            println!(
-                "pl write get next write_offset {:?}",
-                self.next_write_offset_
-            );
             self.buf_.refit_tail(file_advance, leftover_tail);
             self.next_write_offset_ = file_advance;
-            println!(
-                "pl write get next write_offset {:?}",
-                self.next_write_offset_
-            );
         }
         s
     }

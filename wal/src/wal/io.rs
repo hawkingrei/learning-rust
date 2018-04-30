@@ -420,19 +420,26 @@ impl SequentialFile for PosixSequentialFile {
             unsafe {
                 if (libc::fcntl(fd, libc::F_NOCACHE, 1) == -1) {
                     libc::close(fd);
-                    //return IOError("While fcntl NoCache", fname, errno);
+                    println!("While fcntl NoCache");
+                    return state::new(
+                        Code::kIOError,
+                        "While fcntl NoCache".to_string(),
+                        "".to_string(),
+                    );
+                    //IOError("While fcntl NoCache", fname, errno);
                 }
             }
         } else {
             unsafe {
                 loop {
-                    file = libc::fdopen(fd, &('r' as libc::c_char));
+                    file = libc::fdopen(fd, b"r".as_ptr() as *const c_char);
                     if !(file == 0 as *mut libc::FILE && *errno_location() as i32 == libc::EINTR) {
                         break;
                     }
                 }
                 if file == 0 as *mut libc::FILE {
                     libc::close(fd);
+                    println!("While opening a file for sequentially read");
                     return state::new(
                         Code::kIOError,
                         "While opening a file for sequentially read".to_string(),
@@ -441,6 +448,7 @@ impl SequentialFile for PosixSequentialFile {
                 }
             }
         }
+        println!("file new {:?}", file);
         *ptr = PosixSequentialFile {
             filename_: filename,
             fd_: fd,
@@ -468,19 +476,28 @@ impl SequentialFile for PosixSequentialFile {
     fn Read(&mut self, n: usize, mut result: &mut Vec<u8>, mut scratch: &mut Vec<u8>) -> state {
         let mut s: state = state::ok();
         let r: usize = 0;
+        println!("file {:?}", self.file_);
         unsafe {
             loop {
-                let r = fread_unlocked(scratch.as_mut_ptr() as *mut libc::c_void, 1, n, self.file_);
+                let r = fread_unlocked(
+                    scratch.as_mut_ptr() as *mut libc::c_void,
+                    1 as libc::size_t,
+                    n as libc::size_t,
+                    self.file_,
+                );
                 if !(libc::ferror(self.file_) > 0 && ((*errno_location()) as i32 == libc::EINTR)
                     && r == 0)
                 {
                     break;
                 }
             }
-
+            println!("read errno_location {:?}", *errno_location());
+            println!("scratch {:?}", scratch);
             *result = scratch[..r].to_vec();
+            println!("result {:?}", result);
+
             if (r < n) {
-                if libc::feof(self.file_) > 0 {
+                if libc::feof(self.file_) == 0 {
                     clearerr(self.file_);
                 } else {
                     s = state::new(
