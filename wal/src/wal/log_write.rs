@@ -127,7 +127,6 @@ impl<T: wal::WritableFile> Write<T> {
 
         if ((t as u8) < RecordType::kRecyclableFullType as u8) {
             header_size = kHeaderSize;
-            crc = crc32(crc, &buf[4..kHeaderSize]);
         } else {
             header_size = kRecyclableHeaderSize;
             let lnSlice = wal::EncodeFixed64(self.log_number_);

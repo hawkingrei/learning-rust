@@ -6,8 +6,10 @@ mod log_format;
 pub mod log_reader;
 pub mod log_write;
 use hash;
+use hash::crc32;
 use libc;
 use std::mem;
+use std::ptr::copy_nonoverlapping;
 use std::str;
 use wal;
 use wal::env::EnvOptions;
@@ -38,10 +40,11 @@ pub fn EncodeFixed64(value: u64) -> [u8; 8] {
 
 pub fn DecodeFixed32(value: [u8; 4]) -> u32 {
     let mut result: u32 = 0;
-    result = (result | value[0] as u32) << 4;
-    result = (result | value[1] as u32) << 4;
-    result = (result | value[2] as u32) << 4;
-    result = (result | value[3] as u32) << 4;
+    println!("decodefixed32 {:?}", value);
+    unsafe {
+        copy_nonoverlapping(value.as_ptr(), &mut result as *mut u32 as *mut u8, 4);
+    }
+    println!("decodefixed32 {:?}", result);
     if cfg!(target_endian = "little") {
         result.to_le()
     } else {
@@ -176,7 +179,7 @@ fn test_wal() {
         let mut writer = WritableFileWriter::new(fd, op);
         let mut wal = Write::new(writer, 0, false, true);
 
-        let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        let input = vec![1, 2, 3];
         wal.add_record(input);
         let input = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         wal.add_record(input);
@@ -185,6 +188,7 @@ fn test_wal() {
         let input = vec![1, 2];
         wal.add_record(input);
     }
+    println!("test wal crc {:?}", crc32(0, &[1, 1, 2, 3]));
     {
         let mut pf: PosixSequentialFile = PosixSequentialFile::default();
         let mut op: EnvOptions = EnvOptions::default();
@@ -193,6 +197,7 @@ fn test_wal() {
         let mut reader = Reader::new(sf, 0, 0, true);
         let mut record: Vec<u8> = Vec::new();
         let mut scratch: Vec<u8> = Vec::new();
+
         {
             reader.readRecord(
                 &mut record,
@@ -200,6 +205,16 @@ fn test_wal() {
                 env::WALRecoveryMode::kAbsoluteConsistency,
             );
         }
-        assert_eq!(record, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+        assert_eq!(record, vec![1, 2, 3]);
+        record.clear();
+        scratch.clear();
+        {
+            reader.readRecord(
+                &mut record,
+                &mut scratch,
+                env::WALRecoveryMode::kAbsoluteConsistency,
+            );
+        }
+        assert_eq!(record, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     }
 }
