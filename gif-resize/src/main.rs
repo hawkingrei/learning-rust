@@ -4,15 +4,6 @@ extern crate num_iter;
 extern crate num_rational;
 extern crate num_traits;
 extern crate resize;
-mod animation;
-mod buffer;
-mod color;
-mod dynimage;
-mod image;
-mod imageops;
-mod math;
-mod traits;
-mod utils;
 
 use cv::core::*;
 use cv::imgproc::*;
@@ -29,7 +20,6 @@ use std::io::prelude::*;
 use std::io::Read;
 use std::io::Write;
 use std::time::SystemTime;
-pub use traits::Primitive;
 
 #[inline]
 fn copy_memory(src: &[u8], mut dst: &mut [u8]) {
@@ -81,18 +71,9 @@ fn main() {
                 newframe.width = width / 2;
                 newframe.height = height / 2;
 
-                //let mut resizer = resize::new(
-                //    width as usize,
-                //    height as usize,
-                //    frame.width as usize,
-                //    frame.height as usize,
-                //    RGB24,
-                //    Lanczos3,
-                //);
-
                 {
-                    let src = frame.buffer;
-                    let mut dst = vec![0; (frame.width * frame.height) as usize];
+                    let src = &frame.buffer;
+                    let mut dst = vec![0; width as usize * height as usize / 4];
                     resize::resize(
                         width as usize,
                         height as usize,
@@ -103,7 +84,7 @@ fn main() {
                         &src,
                         &mut dst,
                     );
-                    newframe.buffer = Cow::Borrowed(dst.as_slice());
+                    newframe = gif::Frame::from_rgb(width / 2, height / 2, &mut *dst);
                 }
 
                 encoder.write_frame(&newframe).unwrap();
