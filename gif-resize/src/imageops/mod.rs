@@ -16,8 +16,9 @@ pub use self::affine::{flip_horizontal, flip_vertical, rotate180, rotate270, rot
 pub use self::sample::{blur, filter3x3, resize, thumbnail, unsharpen};
 
 /// Color operations
-pub use self::colorops::{brighten, contrast, dither, grayscale, huerotate, index_colors, invert,
-                         BiLevel, ColorMap};
+pub use self::colorops::{
+    brighten, contrast, dither, grayscale, huerotate, index_colors, invert, BiLevel, ColorMap,
+};
 
 mod affine;
 // Public only because of Rust bug:

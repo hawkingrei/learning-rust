@@ -1,25 +1,25 @@
 extern crate cv;
 extern crate gif;
-extern crate num_traits;
-extern crate resize;
 extern crate num_iter;
 extern crate num_rational;
-mod traits;
-mod utils;
-mod color;
+extern crate num_traits;
+extern crate resize;
 mod animation;
 mod buffer;
+mod color;
 mod dynimage;
 mod image;
 mod imageops;
 mod math;
+mod traits;
+mod utils;
 
 use cv::core::*;
 use cv::imgproc::*;
 use cv::*;
 use gif::Frame;
 use gif::SetParameter;
-use resize::Pixel::RGBA;
+use resize::Pixel::RGB24;
 use resize::Type::Lanczos3;
 use std::borrow::Cow;
 use std::env;
@@ -81,18 +81,28 @@ fn main() {
                 newframe.width = width / 2;
                 newframe.height = height / 2;
 
-                let mut resizer = resize::new(
-                    width as usize,
-                    height as usize,
-                    frame.width as usize,
-                    frame.height as usize,
-                    RGBA,
-                    Lanczos3,
-                );
+                //let mut resizer = resize::new(
+                //    width as usize,
+                //    height as usize,
+                //    frame.width as usize,
+                //    frame.height as usize,
+                //    RGB24,
+                //    Lanczos3,
+                //);
 
                 {
-                    let mut dst = &mut Vec::new();
-                    resizer.resize(&frame.buffer, dst);
+                    let src = frame.buffer;
+                    let mut dst = vec![0; (frame.width * frame.height) as usize];
+                    resize::resize(
+                        width as usize,
+                        height as usize,
+                        frame.width as usize,
+                        frame.height as usize,
+                        RGB24,
+                        Lanczos3,
+                        &src,
+                        &mut dst,
+                    );
                     newframe.buffer = Cow::Borrowed(dst.as_slice());
                 }
 

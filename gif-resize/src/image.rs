@@ -1,8 +1,8 @@
 use std::error::Error;
-use std::ops::{Deref, DerefMut};
 use std::fmt;
 use std::io;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 
 use buffer::{ImageBuffer, Pixel};
 use color;
@@ -496,22 +496,21 @@ pub trait GenericImage: Sized {
     }
 
     /// Returns a subimage that is a view into this image.
-    fn sub_image(&mut self, x: u32, y: u32, width: u32, height: u32)
-    -> SubImage<&mut Self>
-    where 
-        Self: 'static, 
+    fn sub_image(&mut self, x: u32, y: u32, width: u32, height: u32) -> SubImage<&mut Self>
+    where
+        Self: 'static,
         <Self::Pixel as Pixel>::Subpixel: 'static,
-        Self::Pixel: 'static 
+        Self::Pixel: 'static,
     {
-            SubImage::new(self, x, y, width, height)
+        SubImage::new(self, x, y, width, height)
     }
 
     /// Returns an subimage that is an immutable view into this image.
     fn view(&self, x: u32, y: u32, width: u32, height: u32) -> SubImage<&Self>
-    where 
+    where
         Self: 'static,
         <Self::Pixel as Pixel>::Subpixel: 'static,
-        Self::Pixel: 'static 
+        Self::Pixel: 'static,
     {
         SubImage::new(self, x, y, width, height)
     }
@@ -552,11 +551,16 @@ impl<I> SubImage<I> {
     }
 
     /// Convert this subimage to an ImageBuffer
-    pub fn to_image(&self)
-    -> ImageBuffer<
+    pub fn to_image(
+        &self,
+    ) -> ImageBuffer<
         <I::Target as GenericImage>::Pixel,
-        Vec<<<I::Target as GenericImage>::Pixel as Pixel>::Subpixel>>
-    where I: Deref, I::Target: GenericImage + 'static {
+        Vec<<<I::Target as GenericImage>::Pixel as Pixel>::Subpixel>,
+    >
+    where
+        I: Deref,
+        I::Target: GenericImage + 'static,
+    {
         let mut out = ImageBuffer::new(self.xstride, self.ystride);
         let borrowed = self.image.deref();
 
@@ -576,7 +580,7 @@ impl<I> SubImage<I> {
 impl<I> GenericImage for SubImage<I>
 where
     I: DerefMut,
-    I::Target: GenericImage + 'static
+    I::Target: GenericImage + 'static,
 {
     type Pixel = <I::Target as GenericImage>::Pixel;
 
