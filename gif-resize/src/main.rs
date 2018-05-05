@@ -1,11 +1,27 @@
 extern crate cv;
 extern crate gif;
+extern crate num_traits;
+extern crate resize;
+extern crate num_iter;
+extern crate num_rational;
+mod traits;
+mod utils;
+mod color;
+mod animation;
+mod buffer;
+mod dynimage;
+mod image;
+mod imageops;
+mod math;
 
-use cv::*;
 use cv::core::*;
 use cv::imgproc::*;
+use cv::*;
 use gif::Frame;
 use gif::SetParameter;
+use resize::Pixel::RGBA;
+use resize::Type::Lanczos3;
+use std::borrow::Cow;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -13,13 +29,21 @@ use std::io::prelude::*;
 use std::io::Read;
 use std::io::Write;
 use std::time::SystemTime;
+pub use traits::Primitive;
 
-fn main() {    
-    let args: Vec<String> = env::args().collect();    
-    let metadata = match fs::metadata(&args[1]) {        
-        Ok(x) => x.len(),        
-        Err(_) => 0,    
-    };    
+#[inline]
+fn copy_memory(src: &[u8], mut dst: &mut [u8]) {
+    let len_src = src.len();
+    assert!(dst.len() >= len_src);
+    dst.write_all(src).unwrap();
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let metadata = match fs::metadata(&args[1]) {
+        Ok(x) => x.len(),
+        Err(_) => 0,
+    };
     let mut f = File::open(&args[1]).unwrap();
 
     let mut input = Vec::new();
@@ -43,7 +67,7 @@ fn main() {
             //&mut image,
             readimage,
             width,
-          height,
+            height,
             match decoder.global_palette() {
                 // The division was valid
                 Some(x) => &x,
@@ -53,11 +77,26 @@ fn main() {
         ).unwrap();
         match decoder.read_next_frame().unwrap() {
             Some(frame) => {
-                
-                let mat = Mat::from_buffer(height as i32, width as i32, CvType::Cv8UC3 as i32, &frame.buffer.clone().into_owned().to_vec());
-                mat.resize_to( Size2i::new(300,169),InterpolationFlag::InterNearst);
-                println!("{:?}", frame.buffer.len());
-                encoder.write_frame(&frame).unwrap();
+                let mut newframe = Frame::default();
+                newframe.width = width / 2;
+                newframe.height = height / 2;
+
+                let mut resizer = resize::new(
+                    width as usize,
+                    height as usize,
+                    frame.width as usize,
+                    frame.height as usize,
+                    RGBA,
+                    Lanczos3,
+                );
+
+                {
+                    let mut dst = &mut Vec::new();
+                    resizer.resize(&frame.buffer, dst);
+                    newframe.buffer = Cow::Borrowed(dst.as_slice());
+                }
+
+                encoder.write_frame(&newframe).unwrap();
             }
             None => std::process::exit(0),
         }
