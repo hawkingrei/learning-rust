@@ -417,7 +417,6 @@ impl DynamicImage {
                 Ok(())
             }
 
-            #[cfg(feature = "gif_codec")]
             image::ImageOutputFormat::GIF => {
                 let g = gif::Encoder::new(w);
 
@@ -684,10 +683,9 @@ pub fn load<R: BufRead + Seek>(r: R, format: ImageFormat) -> ImageResult<Dynamic
     #[allow(deprecated, unreachable_patterns)]
     // Default is unreachable if all features are supported.
     match format {
+        image::ImageFormat::GIF => decoder_to_image(gif::Decoder::new(r)),
         #[cfg(feature = "png_codec")]
         image::ImageFormat::PNG => decoder_to_image(png::PNGDecoder::new(r)),
-        #[cfg(feature = "gif_codec")]
-        image::ImageFormat::GIF => decoder_to_image(gif::Decoder::new(r)),
         #[cfg(feature = "jpeg")]
         image::ImageFormat::JPEG => decoder_to_image(jpeg::JPEGDecoder::new(r)),
         #[cfg(feature = "webp")]
