@@ -10,8 +10,8 @@ use cv::imgproc::*;
 use cv::*;
 use gif::Frame;
 use gif::SetParameter;
-use resize::Pixel::RGB24;
-use resize::Type::Lanczos3;
+use resize::Pixel::RGBA;
+use resize::Type::Point;
 use std::borrow::Cow;
 use std::env;
 use std::fs;
@@ -67,24 +67,22 @@ fn main() {
         ).unwrap();
         match decoder.read_next_frame().unwrap() {
             Some(frame) => {
-                let mut newframe = Frame::default();
-                newframe.width = width / 2;
-                newframe.height = height / 2;
+                let mut newframe;
 
                 {
                     let src = &frame.buffer;
-                    let mut dst = vec![0; width as usize * height as usize / 4];
+                    let mut dst = vec![0; 608400];
                     resize::resize(
                         width as usize,
                         height as usize,
                         frame.width as usize,
                         frame.height as usize,
-                        RGB24,
-                        Lanczos3,
+                        RGBA,
+                        Point,
                         &src,
                         &mut dst,
                     );
-                    newframe = gif::Frame::from_rgb(width / 2, height / 2, &mut *dst);
+                    newframe = gif::Frame::from_rgba(width / 2, height / 2, &mut *dst);
                 }
 
                 encoder.write_frame(&newframe).unwrap();
