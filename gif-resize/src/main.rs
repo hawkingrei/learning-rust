@@ -1,8 +1,5 @@
 extern crate cv;
 extern crate gif;
-extern crate num_iter;
-extern crate num_rational;
-extern crate num_traits;
 extern crate resize;
 
 use cv::core::*;
@@ -11,7 +8,7 @@ use cv::*;
 use gif::Frame;
 use gif::SetParameter;
 use resize::Pixel::RGBA;
-use resize::Type::Point;
+use resize::Type::Lanczos3;
 use std::borrow::Cow;
 use std::env;
 use std::fs;
@@ -56,8 +53,8 @@ fn main() {
         let mut encoder = gif::Encoder::new(
             //&mut image,
             readimage,
-            width,
-            height,
+            width * 2,
+            height * 2,
             match decoder.global_palette() {
                 // The division was valid
                 Some(x) => &x,
@@ -65,29 +62,40 @@ fn main() {
                 None => &[],
             },
         ).unwrap();
-        match decoder.read_next_frame().unwrap() {
-            Some(frame) => {
-                let mut newframe;
-
-                {
-                    let src = &frame.buffer;
-                    let mut dst = vec![0; 608400];
-                    resize::resize(
-                        width as usize,
-                        height as usize,
-                        frame.width as usize,
-                        frame.height as usize,
-                        RGBA,
-                        Point,
-                        &src,
-                        &mut dst,
-                    );
-                    newframe = gif::Frame::from_rgba(width / 2, height / 2, &mut *dst);
+        loop {
+            match decoder.read_next_frame().unwrap() {
+                Some(frame) => {
+                    let mut newframe;
+                    {
+                        let src = &frame.buffer;
+                        let mut dst =
+                            vec![0; (frame.width as usize) * (frame.height as usize) * 4 * 4];
+                        let mut resizer = resize::new(
+                            frame.width as usize,
+                            frame.height as usize,
+                            (frame.width * 2) as usize,
+                            (frame.height * 2) as usize,
+                            RGBA,
+                            Lanczos3,
+                        );
+                        println!("new");
+                        resizer.resize(&src, &mut dst);
+                        println!("resize {} {} ", frame.width * 2, frame.height * 2);
+                        newframe =
+                            gif::Frame::from_rgba(frame.width * 2, frame.height * 2, &mut *dst);
+                        println!("delay {}", frame.delay);
+                        newframe.delay = frame.delay;
+                        newframe.top = frame.top*2;
+                        newframe.left = frame.left*2;
+                        newframe.interlaced = frame.interlaced;
+                        newframe.dispose = frame.dispose;
+                        println!("new frame");
+                    }
+                    encoder.write_frame(&newframe).unwrap();
+                    println!("against");
                 }
-
-                encoder.write_frame(&newframe).unwrap();
+                None => break,
             }
-            None => std::process::exit(0),
         }
     }
 

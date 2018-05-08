@@ -3,6 +3,10 @@ name = "gif-resize"
 version = "0.1.0"
 authors = ["zhenren <wangweizhen@bilibili.com>"]
 
+[profile.release]
+opt-level = 3
+
 [dependencies]
 cv = { git = "https://github.com/hawkingrei/cv-rs.git" }
 gif = "0.10.0"
+resize = "0.3.0"
