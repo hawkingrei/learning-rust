@@ -8,7 +8,7 @@ use cv::*;
 use gif::Frame;
 use gif::SetParameter;
 use resize::Pixel::RGBA;
-use resize::Type::Lanczos3;
+use resize::Type::Catrom;
 use std::borrow::Cow;
 use std::env;
 use std::fs;
@@ -42,7 +42,7 @@ fn main() {
     let nframe = Frame::default();
     let mut image = Vec::new();
 
-    //println!("decoder.global_palette() {:?}", decoder.global_palette());
+    println!("decoder.global_palette() {:?}", decoder.global_palette());
     //File::create(&args[1].replace(".gif", "_1.gif")).unwrap();
     {
         let readimage = &mut image;
@@ -50,6 +50,7 @@ fn main() {
         let height = decoder.height();
         println!("{}", decoder.width());
         println!("{}", decoder.height());
+
         let mut encoder = gif::Encoder::new(
             //&mut image,
             readimage,
@@ -76,20 +77,21 @@ fn main() {
                             (frame.width * 2) as usize,
                             (frame.height * 2) as usize,
                             RGBA,
-                            Lanczos3,
+                            Catrom,
                         );
-                        println!("new");
                         resizer.resize(&src, &mut dst);
                         println!("resize {} {} ", frame.width * 2, frame.height * 2);
+                        println!("transparent {}", frame.transparent.unwrap());
+                        
                         newframe =
                             gif::Frame::from_rgba(frame.width * 2, frame.height * 2, &mut *dst);
                         println!("delay {}", frame.delay);
+                        println!("transparent {:?}", newframe.palette);
                         newframe.delay = frame.delay;
-                        newframe.top = frame.top*2;
-                        newframe.left = frame.left*2;
+                        newframe.top = frame.top * 2;
+                        newframe.left = frame.left * 2;
                         newframe.interlaced = frame.interlaced;
                         newframe.dispose = frame.dispose;
-                        println!("new frame");
                     }
                     encoder.write_frame(&newframe).unwrap();
                     println!("against");
