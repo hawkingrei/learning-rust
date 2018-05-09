@@ -2,6 +2,7 @@ extern crate gif;
 extern crate libc;
 use std::fs;
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 use std::io::Read;
 use std::io::Write;
@@ -27,24 +28,36 @@ pub extern "C" fn get_first_frame(
         }
         let mut image = Vec::from_raw_parts(rptr, 0, length as usize);
         {
-            let readimage = &mut image;
-            *width = decode.width();
-            *height = decode.height();
-            let mut encoder = gif::Encoder::new(
-                //&mut image,
-                readimage,
-                *width,
-                *height,
-                match decode.global_palette() {
-                    // The division was valid
-                    Some(x) => &x,
-                    // The division was invalid
-                    None => &[],
+            let mut encoder: io::Result<Self>;
+            {
+                let readimage = &mut image;
+                *width = decode.width();
+                *height = decode.height();
+                let mut encoder = gif::Encoder::new(
+                    //&mut image,
+                    readimage,
+                    *width,
+                    *height,
+                    match decode.global_palette() {
+                        // The division was valid
+                        Some(x) => &x,
+                        // The division was invalid
+                        None => &[],
+                    },
+                ).unwrap();
+            }
+            match decode.read_next_frame() {
+                Ok(r) => {
+                    match r {
+                        Some(frame) => encoder.write_frame(&frame).unwrap(),
+                        None => (),
+                    }
                 },
-            ).unwrap();
-            match decode.read_next_frame().unwrap() {
-                Some(frame) => encoder.write_frame(&frame).unwrap(),
-                None => (),
+                Err(e) => {
+                    println!("read_next_frame happen error {:?}",e);
+                    mem::forget(readimage);
+                    return 0;
+                },
             };
         }
         let mut f = File::create("test_rust.gif").expect("Unable to create file");
@@ -54,6 +67,8 @@ pub extern "C" fn get_first_frame(
         let rlen = image.len();
         mem::forget(image);
         return rlen;
+
+
     }
 }
 
