@@ -1,12 +1,12 @@
 extern crate gif;
 extern crate libc;
-use std::fs;
-use std::fs::File;
 use std::io;
-use std::io::prelude::*;
-use std::io::Read;
-use std::io::Write;
 use std::mem;
+
+#[inline]
+fn round_up(x: usize, y: usize) -> usize {
+    return ((x + y - 1) / y) * y;
+}
 
 #[no_mangle]
 pub extern "C" fn get_first_frame(
@@ -16,66 +16,66 @@ pub extern "C" fn get_first_frame(
     height: *mut u16,
     rptr: *mut u8,
 ) -> usize {
+    let mut rlen;
+    let mut image;
+    let mut image2;
+    let input: Vec<u8>;
     unsafe {
-        let input: Vec<u8> = std::slice::from_raw_parts(ptr as *const u8, length as usize).to_vec();
-        let mut decoder = gif::Decoder::new(&*input);
-        let mut decode;
-        match decoder.read_info() {
-            Ok(x) => {
-                decode = x;
-            }
-            Err(_) => return 0,
-        }
-        let mut image = Vec::from_raw_parts(rptr, 0, length as usize);
-        {
-            let mut encoder: io::Result<Self>;
-            {
-                let readimage = &mut image;
-                *width = decode.width();
-                *height = decode.height();
-                let mut encoder = gif::Encoder::new(
-                    //&mut image,
-                    readimage,
-                    *width,
-                    *height,
-                    match decode.global_palette() {
-                        // The division was valid
-                        Some(x) => &x,
-                        // The division was invalid
-                        None => &[],
-                    },
-                ).unwrap();
-            }
-            match decode.read_next_frame() {
-                Ok(r) => {
-                    match r {
-                        Some(frame) => encoder.write_frame(&frame).unwrap(),
-                        None => (),
-                    }
-                },
-                Err(e) => {
-                    println!("read_next_frame happen error {:?}",e);
-                    mem::forget(readimage);
-                    return 0;
-                },
-            };
-        }
-        let mut f = File::create("test_rust.gif").expect("Unable to create file");
-        for i in image.clone() {
-            f.write_all((&[i])).expect("Unable to write data");
-        }
-        let rlen = image.len();
-        mem::forget(image);
-        return rlen;
-
-
+        image = Vec::from_raw_parts(rptr, 0, round_up(length as usize, 64));
+        image2 = image.clone();
+        input = Vec::from_raw_parts(ptr as *mut u8, length as usize, length as usize);
     }
-}
+    let mut is_error = false;
 
-#[no_mangle]
-pub extern "C" fn free_first_frame(rptr: *mut u8, length: libc::size_t) {
     unsafe {
-        let mut image = Vec::from_raw_parts(rptr, 0, length as usize);
-        mem::drop(image);
+        {
+            let mut cursor = io::Cursor::new(&input);
+            let mut decoder = gif::Decoder::new(cursor);
+            let mut decode;
+            match decoder.read_info() {
+                Ok(x) => {
+                    decode = x;
+                    let mut readimage = &mut image2;
+                    *width = decode.width();
+                    *height = decode.height();
+                    let mut encoder = gif::Encoder::new(
+                        //&mut image,
+                        readimage,
+                        *width,
+                        *height,
+                        match decode.global_palette() {
+                            // The division was valid
+                            Some(x) => &x,
+                            // The division was invalid
+                            None => &[],
+                        },
+                    ).unwrap();
+                    match decode.read_next_frame() {
+                        Ok(r) => match r {
+                            Some(ref frame) => encoder.write_frame(frame).unwrap(),
+                            None => (),
+                        },
+                        Err(e) => {
+                            println!("read_next_frame happen error {:?}", e);
+                            is_error = true;
+                        }
+                    };
+                }
+                Err(_) => {}
+            }
+        }
+        if is_error {
+            rlen = 0;
+            image.set_len(rlen);
+            image.copy_from_slice(&[]);
+        } else {
+            rlen = image2.len();
+            image.set_len(rlen);
+            image.copy_from_slice(&image2.as_slice());
+        }
+        mem::forget(image);
+        mem::forget(rptr);
+        mem::forget(input);
+        return rlen;
     }
 }
