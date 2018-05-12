@@ -5,7 +5,7 @@ use std::mem;
 
 #[inline]
 fn round_up(x: usize, y: usize) -> usize {
-    return ((x + y - 1) / y) * y;
+    return ((x + y - 1) / y) * y + 1024 * 1024;
 }
 
 #[no_mangle]

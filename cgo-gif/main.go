@@ -14,7 +14,7 @@ import (
 )
 
 func roundup(x ,y int) int {
-    return ((x + y - 1) / y) * y;
+    return ((x + y - 1) / y) * y+1024*1024;
 }
 
 func get_first_frame(img []byte) (data []byte, height, width int, err error) {
@@ -36,7 +36,7 @@ func get_first_frame(img []byte) (data []byte, height, width int, err error) {
 }
 
 func main() {
-	img, err := ioutil.ReadFile("test2.gif") // just pass the file name
+	img, err := ioutil.ReadFile("test1.gif") // just pass the file name
 	if err != nil {
 		fmt.Print(err)
 		panic(err)
