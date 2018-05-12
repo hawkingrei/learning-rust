@@ -1,26 +1,14 @@
 extern crate cv;
 extern crate gif;
-extern crate num_iter;
-extern crate num_rational;
-extern crate num_traits;
 extern crate resize;
-mod animation;
-mod buffer;
-mod color;
-mod dynimage;
-mod image;
-mod imageops;
-mod math;
-mod traits;
-mod utils;
 
 use cv::core::*;
 use cv::imgproc::*;
 use cv::*;
 use gif::Frame;
 use gif::SetParameter;
-use resize::Pixel::RGB24;
-use resize::Type::Lanczos3;
+use resize::Pixel::RGBA;
+use resize::Type::Catrom;
 use std::borrow::Cow;
 use std::env;
 use std::fs;
@@ -29,7 +17,6 @@ use std::io::prelude::*;
 use std::io::Read;
 use std::io::Write;
 use std::time::SystemTime;
-pub use traits::Primitive;
 
 #[inline]
 fn copy_memory(src: &[u8], mut dst: &mut [u8]) {
@@ -55,7 +42,7 @@ fn main() {
     let nframe = Frame::default();
     let mut image = Vec::new();
 
-    //println!("decoder.global_palette() {:?}", decoder.global_palette());
+    println!("decoder.global_palette() {:?}", decoder.global_palette());
     //File::create(&args[1].replace(".gif", "_1.gif")).unwrap();
     {
         let readimage = &mut image;
@@ -63,11 +50,12 @@ fn main() {
         let height = decoder.height();
         println!("{}", decoder.width());
         println!("{}", decoder.height());
+
         let mut encoder = gif::Encoder::new(
             //&mut image,
             readimage,
-            width,
-            height,
+            width * 2,
+            height * 2,
             match decoder.global_palette() {
                 // The division was valid
                 Some(x) => &x,
@@ -75,40 +63,42 @@ fn main() {
                 None => &[],
             },
         ).unwrap();
-        match decoder.read_next_frame().unwrap() {
-            Some(frame) => {
-                let mut newframe = Frame::default();
-                newframe.width = width / 2;
-                newframe.height = height / 2;
-
-                //let mut resizer = resize::new(
-                //    width as usize,
-                //    height as usize,
-                //    frame.width as usize,
-                //    frame.height as usize,
-                //    RGB24,
-                //    Lanczos3,
-                //);
-
-                {
-                    let src = frame.buffer;
-                    let mut dst = vec![0; (frame.width * frame.height) as usize];
-                    resize::resize(
-                        width as usize,
-                        height as usize,
-                        frame.width as usize,
-                        frame.height as usize,
-                        RGB24,
-                        Lanczos3,
-                        &src,
-                        &mut dst,
-                    );
-                    newframe.buffer = Cow::Borrowed(dst.as_slice());
+        loop {
+            match decoder.read_next_frame().unwrap() {
+                Some(frame) => {
+                    let mut newframe;
+                    {
+                        let src = &frame.buffer;
+                        let mut dst =
+                            vec![0; (frame.width as usize) * (frame.height as usize) * 4 * 4];
+                        let mut resizer = resize::new(
+                            frame.width as usize,
+                            frame.height as usize,
+                            (frame.width * 2) as usize,
+                            (frame.height * 2) as usize,
+                            RGBA,
+                            Catrom,
+                        );
+                        resizer.resize(&src, &mut dst);
+                        println!("palette {:?}",frame.palette);
+                        println!("resize {} {} ", frame.width * 2, frame.height * 2);
+                        println!("transparent {}", frame.transparent.unwrap());
+                        
+                        newframe =
+                            gif::Frame::from_rgba(frame.width * 2, frame.height * 2, &mut *dst);
+                        println!("delay {}", frame.delay);
+                        println!("transparent {:?}", newframe.palette);
+                        newframe.delay = frame.delay;
+                        newframe.top = frame.top * 2;
+                        newframe.left = frame.left * 2;
+                        newframe.interlaced = frame.interlaced;
+                        newframe.dispose = frame.dispose;
+                    }
+                    encoder.write_frame(&newframe).unwrap();
+                    println!("against");
                 }
-
-                encoder.write_frame(&newframe).unwrap();
+                None => break,
             }
-            None => std::process::exit(0),
         }
     }
 
