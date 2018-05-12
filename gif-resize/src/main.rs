@@ -80,6 +80,7 @@ fn main() {
                             Catrom,
                         );
                         resizer.resize(&src, &mut dst);
+                        println!("palette {:?}",frame.palette);
                         println!("resize {} {} ", frame.width * 2, frame.height * 2);
                         println!("transparent {}", frame.transparent.unwrap());
                         
