@@ -1,0 +1,11 @@
+[package]
+name = "multi-rocket"
+version = "0.1.0"
+authors = ["Wangweizhen <hawking.rei@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rocket = "0.3.17"
+rocket_codegen = "0.3.17"
+tokio = "0.1.11"
+futures = "0.1.25"
