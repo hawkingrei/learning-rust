@@ -1,0 +1,15 @@
+[package]
+name = "diskgc"
+version = "0.1.0"
+authors = ["Wangweizhen <hawking.rei@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+crossbeam-channel = "0.2"
+crossbeam = "0.2"
+futures = "0.1.25"
+futures-cpupool = "0.1.8"
+log = "0.4"
+time = "0.1.40"
+tokio-core = "0.1.17"
+tokio-timer = "0.2.7"
