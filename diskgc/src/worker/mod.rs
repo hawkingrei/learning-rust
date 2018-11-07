@@ -1,3 +1,4 @@
+use core_affinity::CoreId;
 use crate::util::mpsc::{self, Receiver, Sender};
 use crate::util::time::{Instant, SlowTimer};
 use crate::util::timer::Timer;
@@ -291,13 +292,22 @@ impl<T: Display + Send + 'static> Worker<T> {
     }
 
     /// Start the worker.
-    pub fn start<R: Runnable<T> + Send + 'static>(&mut self, runner: R) -> Result<(), io::Error> {
+    pub fn start<R: Runnable<T> + Send + 'static>(
+        &mut self,
+        id: CoreId,
+        runner: R,
+    ) -> Result<(), io::Error> {
         let runner = DefaultRunnerWithTimer(runner);
         let timer: Timer<()> = Timer::new(0);
-        self.start_with_timer(runner, timer)
+        self.start_with_timer(id, runner, timer)
     }
 
-    pub fn start_with_timer<R, U>(&mut self, runner: R, timer: Timer<U>) -> Result<(), io::Error>
+    pub fn start_with_timer<R, U>(
+        &mut self,
+        id: CoreId,
+        runner: R,
+        timer: Timer<U>,
+    ) -> Result<(), io::Error>
     where
         R: RunnableWithTimer<T, U> + Send + 'static,
         U: Send + 'static,
@@ -314,7 +324,10 @@ impl<T: Display + Send + 'static> Worker<T> {
         let batch_size = self.batch_size;
         let h = ThreadBuilder::new()
             .name(thd_name!(self.scheduler.name.as_ref()))
-            .spawn(move || poll(runner, rx, counter, batch_size, timer))?;
+            .spawn(move || {
+                core_affinity::set_for_current(id);
+                poll(runner, rx, counter, batch_size, timer)
+            })?;
         self.handle = Some(h);
         Ok(())
     }
@@ -409,7 +422,10 @@ mod tests {
     fn test_worker() {
         let mut worker = Worker::new("test-worker");
         let (tx, rx) = mpsc::channel();
-        worker.start(StepRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), StepRunner { ch: tx })
+            .unwrap();
         assert!(!worker.is_busy());
         worker.schedule(60).unwrap();
         worker.schedule(40).unwrap();
@@ -432,7 +448,10 @@ mod tests {
     fn test_threaded() {
         let mut worker = Worker::new("test-worker-threaded");
         let (tx, rx) = mpsc::channel();
-        worker.start(StepRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), StepRunner { ch: tx })
+            .unwrap();
         let scheduler = worker.scheduler();
         thread::spawn(move || {
             scheduler.schedule(90).unwrap();
@@ -448,7 +467,10 @@ mod tests {
     fn test_batch() {
         let mut worker = Builder::new("test-worker-batch").batch_size(10).create();
         let (tx, rx) = mpsc::channel();
-        worker.start(BatchRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), BatchRunner { ch: tx })
+            .unwrap();
         for _ in 0..20 {
             worker.schedule(50).unwrap();
         }
@@ -471,7 +493,10 @@ mod tests {
     fn test_autowired_batch() {
         let mut worker = Builder::new("test-worker-batch").batch_size(10).create();
         let (tx, rx) = mpsc::channel();
-        worker.start(StepRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), StepRunner { ch: tx })
+            .unwrap();
         for _ in 0..20 {
             worker.schedule(50).unwrap();
         }
@@ -489,7 +514,10 @@ mod tests {
             worker.schedule("normal msg").unwrap();
         }
         let (tx, rx) = mpsc::channel();
-        worker.start(TickRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), TickRunner { ch: tx })
+            .unwrap();
         for i in 0..13 {
             let msg = rx.recv_timeout(Duration::from_secs(3)).unwrap();
             if i != 4 && i != 9 && i != 12 {
@@ -515,7 +543,10 @@ mod tests {
         assert_eq!(scheduler.schedule(3).unwrap_err(), ScheduleError::Full(3));
 
         let (tx, rx) = mpsc::channel();
-        worker.start(BatchRunner { ch: tx }).unwrap();
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        worker
+            .start(*core_ids.get(1).unwrap(), BatchRunner { ch: tx })
+            .unwrap();
         assert!(rx.recv_timeout(Duration::from_secs(3)).is_ok());
 
         worker.stop().unwrap().join().unwrap();
